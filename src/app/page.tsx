@@ -1,103 +1,142 @@
-import Image from "next/image";
+'use client';
+
+import React from 'react';
+import { useStudySession } from '@/contexts/StudySessionContext';
+import QuestionDisplay from '@/components/QuestionDisplay';
+import NavigationControls from '@/components/NavigationControls';
+import JsonInputArea from '@/components/JsonInputArea';
+import { StudySet } from '@/types/studyTypes';
 
 export default function Home() {
-  return (
-    <div className="grid grid-rows-[20px_1fr_20px] items-center justify-items-center min-h-screen p-8 pb-20 gap-16 sm:p-20 font-[family-name:var(--font-geist-sans)]">
-      <main className="flex flex-col gap-[32px] row-start-2 items-center sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={180}
-          height={38}
-          priority
-        />
-        <ol className="list-inside list-decimal text-sm/6 text-center sm:text-left font-[family-name:var(--font-geist-mono)]">
-          <li className="mb-2 tracking-[-.01em]">
-            Get started by editing{" "}
-            <code className="bg-black/[.05] dark:bg-white/[.06] px-1 py-0.5 rounded font-[family-name:var(--font-geist-mono)] font-semibold">
-              src/app/page.tsx
-            </code>
-            .
-          </li>
-          <li className="tracking-[-.01em]">
-            Save and see your changes instantly.
-          </li>
-        </ol>
+  const {
+    studySet,
+    currentQuestionIndex,
+    loadStudySet,
+    submitAnswer,
+    nextQuestion,
+    previousQuestion
+  } = useStudySession();
 
-        <div className="flex gap-4 items-center flex-col sm:flex-row">
-          <a
-            className="rounded-full border border-solid border-transparent transition-colors flex items-center justify-center bg-foreground text-background gap-2 hover:bg-[#383838] dark:hover:bg-[#ccc] font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 sm:w-auto"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={20}
-              height={20}
-            />
-            Deploy now
-          </a>
-          <a
-            className="rounded-full border border-solid border-black/[.08] dark:border-white/[.145] transition-colors flex items-center justify-center hover:bg-[#f2f2f2] dark:hover:bg-[#1a1a1a] hover:border-transparent font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 w-full sm:w-auto md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Read our docs
-          </a>
+  // Get current question
+  const currentQuestion = studySet?.questions[currentQuestionIndex] || null;
+  const totalQuestions = studySet?.questions.length || 0;
+
+  // Calculate navigation state
+  const hasPrevious = currentQuestionIndex > 0;
+  const hasNext = studySet !== null && currentQuestionIndex < (studySet.questions.length - 1);
+
+  // Handle JSON loading
+  const handleJsonLoaded = (loadedStudySet: StudySet) => {
+    loadStudySet(loadedStudySet);
+  };
+
+  return (
+    <div className="flex flex-col items-center space-y-6">
+      <h2 className="text-2xl font-semibold text-gray-800">
+        {studySet ? studySet.title : 'Welcome to StudyBuddy'}
+      </h2>
+      
+      {/* Show JSON input if no study set is loaded, otherwise show study interface */}
+      {!studySet ? (
+        <div className="w-full max-w-3xl">
+          <JsonInputArea onJsonLoaded={handleJsonLoaded} />
+          
+          {/* Sample Quizzes */}
+          <div className="bg-white p-6 rounded-lg shadow-md mb-4">
+            <h3 className="text-lg font-semibold mb-2">Sample Quizzes</h3>
+            <p className="text-gray-600 mb-4">Try one of our sample quizzes:</p>
+            <div className="flex flex-wrap gap-3">
+              <a 
+                href="/sample-math-quiz.json" 
+                target="_blank" 
+                className="bg-blue-100 text-blue-700 px-4 py-2 rounded-md hover:bg-blue-200 transition-colors"
+              >
+                Math Quiz
+              </a>
+              <a 
+                href="/sample-physics-quiz.json" 
+                target="_blank" 
+                className="bg-indigo-100 text-indigo-700 px-4 py-2 rounded-md hover:bg-indigo-200 transition-colors"
+              >
+                Physics Quiz
+              </a>
+            </div>
+            <p className="text-gray-500 text-sm mt-2">
+              Click to view, then copy and paste into the JSON input area above.
+            </p>
+          </div>
+          
+          {/* Sample JSON Example */}
+          <div className="bg-white p-6 rounded-lg shadow-md mb-4">
+            <h3 className="text-lg font-semibold mb-2">JSON Format Example</h3>
+            <pre className="bg-gray-100 p-4 rounded-md text-xs overflow-auto max-h-[300px]">
+              {`{
+  "title": "Basic Math Quiz",
+  "settings": {
+    "persistSession": true
+  },
+  "questions": [
+    {
+      "id": "q1",
+      "type": "multiple-choice",
+      "text": [
+        "What is 2 + 2?",
+        "Choose the correct answer."
+      ],
+      "options": [
+        {"id": "a", "text": "3"},
+        {"id": "b", "text": "4", "isCorrect": true},
+        {"id": "c", "text": "5"},
+        {"id": "d", "text": "22"}
+      ]
+    },
+    {
+      "id": "q2",
+      "type": "text-input",
+      "text": [
+        "What is \\\\(\\\\frac{1}{2} + \\\\frac{1}{4}\\\\) as a decimal?"
+      ],
+      "correctAnswers": [
+        "0.75",
+        ".75",
+        "3/4"
+      ],
+      "explanation": "\\\\(\\\\frac{1}{2} + \\\\frac{1}{4} = \\\\frac{2}{4} + \\\\frac{1}{4} = \\\\frac{3}{4} = 0.75\\\\)"
+    }
+  ]
+}`}
+            </pre>
+          </div>
         </div>
-      </main>
-      <footer className="row-start-3 flex gap-[24px] flex-wrap items-center justify-center">
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/file.svg"
-            alt="File icon"
-            width={16}
-            height={16}
+      ) : (
+        <div className="w-full max-w-3xl">
+          {/* Question Display */}
+          <QuestionDisplay 
+            question={currentQuestion} 
+            onAnswerSubmit={submitAnswer}
           />
-          Learn
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/window.svg"
-            alt="Window icon"
-            width={16}
-            height={16}
+          
+          {/* Navigation Controls */}
+          <NavigationControls 
+            currentIndex={currentQuestionIndex}
+            totalQuestions={totalQuestions}
+            onPrevious={previousQuestion}
+            onNext={nextQuestion}
+            hasPrevious={hasPrevious}
+            hasNext={hasNext}
           />
-          Examples
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/globe.svg"
-            alt="Globe icon"
-            width={16}
-            height={16}
-          />
-          Go to nextjs.org →
-        </a>
-      </footer>
+          
+          {/* Reset Button */}
+          <div className="mt-8 text-center">
+            <button
+              onClick={() => loadStudySet(null as any)}
+              className="px-4 py-2 text-sm bg-gray-200 text-gray-700 rounded-md hover:bg-gray-300"
+            >
+              Load Different Study Set
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

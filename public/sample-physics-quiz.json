@@ -1,0 +1,90 @@
+{
+  "title": "Fundamentals of Physics",
+  "settings": {
+    "persistSession": true
+  },
+  "questions": [
+    {
+      "id": "q1",
+      "type": "multiple-choice",
+      "text": [
+        "Which of the following equations represents Newton's Second Law of Motion?"
+      ],
+      "options": [
+        {"id": "a", "text": "\\( E = mc^2 \\)"},
+        {"id": "b", "text": "\\( F = ma \\)", "isCorrect": true},
+        {"id": "c", "text": "\\( F = -kx \\)"},
+        {"id": "d", "text": "\\( E = \\frac{1}{2}mv^2 \\)"}
+      ]
+    },
+    {
+      "id": "q2",
+      "type": "text-input",
+      "text": [
+        "An object with a mass of 5 kg is accelerating at 2 m/s². What is the net force acting on it?",
+        "Give your answer in Newtons (N) with only the number."
+      ],
+      "correctAnswers": [
+        "10",
+        "10N",
+        "10 N"
+      ],
+      "explanation": "Using Newton's Second Law: \\( F = ma \\)\n\\( F = 5 \\text{ kg} \\times 2 \\text{ m/s}^2 = 10 \\text{ N} \\)"
+    },
+    {
+      "id": "q3",
+      "type": "multiple-choice",
+      "text": [
+        "What is the SI unit of electric current?"
+      ],
+      "options": [
+        {"id": "a", "text": "Volt (V)"},
+        {"id": "b", "text": "Watt (W)"},
+        {"id": "c", "text": "Ampere (A)", "isCorrect": true},
+        {"id": "d", "text": "Ohm (Ω)"}
+      ]
+    },
+    {
+      "id": "q4",
+      "type": "text-input",
+      "text": [
+        "A 60W light bulb is connected to a 120V power supply. What is the current flowing through the bulb?",
+        "Express your answer in amperes to two decimal places."
+      ],
+      "correctAnswers": [
+        "0.5",
+        "0.50",
+        "0.5A",
+        "0.5 A"
+      ],
+      "explanation": "Using the power formula: \\( P = VI \\)\n\\( I = \\frac{P}{V} = \\frac{60 \\text{ W}}{120 \\text{ V}} = 0.5 \\text{ A} \\)"
+    },
+    {
+      "id": "q5",
+      "type": "multiple-choice",
+      "text": [
+        "Which formula correctly represents the kinetic energy of an object with mass m and velocity v?"
+      ],
+      "options": [
+        {"id": "a", "text": "\\( E_k = mv \\)"},
+        {"id": "b", "text": "\\( E_k = \\frac{1}{2}mv^2 \\)", "isCorrect": true},
+        {"id": "c", "text": "\\( E_k = mgh \\)"},
+        {"id": "d", "text": "\\( E_k = \\frac{1}{2}kx^2 \\)"}
+      ]
+    },
+    {
+      "id": "q6",
+      "type": "text-input",
+      "text": [
+        "A mass of 2 kg is attached to a spring with spring constant k = 50 N/m. What is the period of oscillation?",
+        "Recall that \\( T = 2\\pi\\sqrt{\\frac{m}{k}} \\). Express your answer in seconds rounded to two decimal places."
+      ],
+      "correctAnswers": [
+        "1.26",
+        "1.26s",
+        "1.26 s"
+      ],
+      "explanation": "\\( T = 2\\pi\\sqrt{\\frac{m}{k}} = 2\\pi\\sqrt{\\frac{2 \\text{ kg}}{50 \\text{ N/m}}} = 2\\pi\\sqrt{0.04} \\approx 1.26 \\text{ s} \\)"
+    }
+  ]
+} 

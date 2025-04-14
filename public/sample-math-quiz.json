@@ -1,0 +1,83 @@
+{
+  "title": "Basic Math Quiz",
+  "settings": {
+    "persistSession": true
+  },
+  "questions": [
+    {
+      "id": "q1",
+      "type": "multiple-choice",
+      "text": [
+        "What is the value of \\( 2 + 3 \\times 4 \\)?",
+        "Remember to apply the order of operations."
+      ],
+      "options": [
+        {"id": "a", "text": "14"},
+        {"id": "b", "text": "20"},
+        {"id": "c", "text": "14", "isCorrect": true},
+        {"id": "d", "text": "24"}
+      ]
+    },
+    {
+      "id": "q2",
+      "type": "text-input",
+      "text": [
+        "Solve for \\( x \\) in the equation \\( 2x + 5 = 15 \\).",
+        "Express your answer as an integer."
+      ],
+      "correctAnswers": [
+        "5"
+      ],
+      "explanation": "\\( 2x + 5 = 15 \\)\n\\( 2x = 10 \\)\n\\( x = 5 \\)"
+    },
+    {
+      "id": "q3",
+      "type": "multiple-choice",
+      "text": [
+        "What is the simplified form of \\( \\frac{8}{12} \\)?"
+      ],
+      "options": [
+        {"id": "a", "text": "\\( \\frac{2}{3} \\)", "isCorrect": true},
+        {"id": "b", "text": "\\( \\frac{4}{6} \\)"},
+        {"id": "c", "text": "\\( \\frac{1}{2} \\)"},
+        {"id": "d", "text": "\\( \\frac{3}{4} \\)"}
+      ]
+    },
+    {
+      "id": "q4",
+      "type": "text-input",
+      "text": [
+        "What is the derivative of \\( f(x) = x^2 \\) with respect to \\( x \\)?"
+      ],
+      "correctAnswers": [
+        "2x"
+      ],
+      "explanation": "The derivative of \\( x^n \\) is \\( nx^{n-1} \\). So for \\( x^2 \\), the derivative is \\( 2x^1 = 2x \\)."
+    },
+    {
+      "id": "q5",
+      "type": "multiple-choice",
+      "text": [
+        "Which of the following is equal to \\( \\pi r^2 \\)?",
+        "This formula represents the area of a particular shape."
+      ],
+      "options": [
+        {"id": "a", "text": "Circumference of a circle"},
+        {"id": "b", "text": "Area of a circle", "isCorrect": true},
+        {"id": "c", "text": "Volume of a sphere"},
+        {"id": "d", "text": "Surface area of a cylinder"}
+      ]
+    },
+    {
+      "id": "q6",
+      "type": "text-input",
+      "text": [
+        "Evaluate \\( \\int_0^1 2x \\, dx \\)."
+      ],
+      "correctAnswers": [
+        "1"
+      ],
+      "explanation": "\\( \\int_0^1 2x \\, dx = [x^2]_0^1 = 1^2 - 0^2 = 1 \\)"
+    }
+  ]
+} 
