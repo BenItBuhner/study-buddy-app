@@ -595,7 +595,7 @@ export default function AIGenerationModal({ isOpen, onClose, onStudySetGenerated
                       <SelectContent>
                         <SelectItem value="gemini-2.0-flash">2.0 Flash</SelectItem>
                         <SelectItem value="gemini-2.0-flash-thinking-exp-01-21">2.0 Flash Thinking</SelectItem>
-                        <SelectItem value="gemini-2.5.pro-exp-03-25">2.5 Pro</SelectItem>
+                        <SelectItem value="gemini-2.5-pro-exp-03-25">2.5 Pro (Exp)</SelectItem>
                       </SelectContent>
                     </Select>
                     <FormDescription className="text-xs invisible">
