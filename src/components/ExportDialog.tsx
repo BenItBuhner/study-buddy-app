@@ -30,38 +30,8 @@ export default function ExportDialog({ isOpen, onClose, studySet }: ExportDialog
     setIsExporting(true);
     
     try {
-      // Create a clone of the study set
-      const exportData = structuredClone(studySet);
-      
-      // If not including progress, reset answer and isUserCorrect fields
-      if (!includeProgress) {
-        exportData.questions = exportData.questions.map(q => ({
-          ...q,
-          answer: null,
-          isUserCorrect: null
-        }));
-      }
-      
-      // Create Blob and download link
-      const jsonString = JSON.stringify(exportData, null, 2);
-      const blob = new Blob([jsonString], { type: 'application/json' });
-      const url = URL.createObjectURL(blob);
-      
-      // Create a download link and trigger it
-      const a = document.createElement('a');
-      a.href = url;
-      
-      // Create a safe filename from the study set title
-      const filename = `${exportData.title.replace(/[^a-z0-9]/gi, '_').toLowerCase()}.json`;
-      a.download = filename;
-      
-      document.body.appendChild(a);
-      a.click();
-      
-      // Clean up
-      URL.revokeObjectURL(url);
-      document.body.removeChild(a);
-      
+      // Use the exportStudySet utility function instead of manual implementation
+      exportStudySet(studySet, includeProgress);
       onClose();
     } catch (error) {
       console.error('Error exporting study set:', error);
