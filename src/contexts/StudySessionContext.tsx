@@ -113,8 +113,10 @@ export function StudySessionProvider({ children }: { children: ReactNode }) {
     
     const updatedQuestions = studySet.questions.map(q => {
       if (q.id === questionId) {
-        let isUserCorrect = false;
+        // Explicitly set incorrect if answer is null (Give Up)
+        let isUserCorrect = false; 
         if (answer !== null) {
+          // Evaluate correctness only if an actual answer was given
           if (q.type === 'multiple-choice') {
             // Debug logging for multiple-choice questions
             console.log('Multiple choice question:', q.id);
@@ -143,7 +145,8 @@ export function StudySessionProvider({ children }: { children: ReactNode }) {
               correct.trim().toLowerCase() === normalizedUserAnswer
             );
           }
-        }
+        } 
+        // Always update the answer field, even if null
         return { ...q, answer, isUserCorrect };
       }
       return q;

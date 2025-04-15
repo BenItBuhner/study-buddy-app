@@ -15,7 +15,7 @@ import 'katex/dist/katex.min.css';
 
 interface QuestionDisplayProps {
   question: Question | null;
-  onAnswerSubmit: (questionId: string, answer: string) => void;
+  onAnswerSubmit: (questionId: string, answer: string | null) => void;
   questionIndex?: number; // Optional index for correct sequential numbering
 }
 
@@ -42,14 +42,14 @@ export default function QuestionDisplay({ question, onAnswerSubmit, questionInde
   const [showConfetti, setShowConfetti] = useState(false);
   const [showFeedback, setShowFeedback] = useState(false);
   const [hasSubmitted, setHasSubmitted] = useState(false);
+  const [showAnswerDirectly, setShowAnswerDirectly] = useState(false); // State for Give Up
   
-  // Reset input value when question changes
+  // Reset input value and manage feedback visibility when question changes
   useEffect(() => {
     if (question) {
       setInputValue(question.answer || '');
-      
-      // Reset hasSubmitted state for new questions that haven't been answered yet
       setHasSubmitted(question.answer !== null);
+      // setShowAnswerDirectly(false); // DO NOT reset here - only reset on Try Again or new question load
       
       // If the question was just answered correctly, show celebration
       if (question.isUserCorrect === true && !showConfetti) {
@@ -83,14 +83,16 @@ export default function QuestionDisplay({ question, onAnswerSubmit, questionInde
         }, 300);
       }
       
-      // Set showFeedback based on user interaction - ONLY if the user has actually submitted an answer
+      // Update feedback visibility based on whether an answer exists in the prop
       setShowFeedback(question.answer !== null && question.isUserCorrect !== null);
     }
-  }, [question, showConfetti]);
-  
-  // Reset confetti state when question changes
+  }, [question, showConfetti]); // Keep showConfetti dependency for its logic
+
+  // Reset confetti state when question ID changes (navigating to a different question)
   useEffect(() => {
     setShowConfetti(false);
+    // Also reset the Give Up state when navigating to a NEW question
+    setShowAnswerDirectly(false); 
   }, [question?.id]);
 
   // Effect for confetti
@@ -161,6 +163,23 @@ export default function QuestionDisplay({ question, onAnswerSubmit, questionInde
     setInputValue(e.target.value);
   };
 
+  // Handle Give Up button click
+  const handleGiveUp = () => {
+    if (!question) return;
+    setShowAnswerDirectly(true); // Trigger answer reveal locally
+    setHasSubmitted(true);       // Lock input
+    onAnswerSubmit(question.id, null); // Submit null (counts as incorrect)
+    setShowFeedback(true); // Ensure feedback area shows
+  };
+
+  // Handle Try Again button click
+  const handleTryAgain = () => {
+    setInputValue("");          // Clear input
+    setHasSubmitted(false);      // Allow input again
+    setShowFeedback(false);      // Hide previous feedback
+    setShowAnswerDirectly(false); // Hide revealed answer if Give Up was clicked before Try Again
+  };
+
   // Generate a question number display (e.g., "Q1")
   // If questionIndex is provided, use it for consistent sequential numbering
   // Otherwise fall back to extracting a number from the question ID
@@ -173,18 +192,23 @@ export default function QuestionDisplay({ question, onAnswerSubmit, questionInde
 
   // Render feedback (correct/incorrect)
   const renderFeedback = () => {
-    if (!hasSubmitted || question.isUserCorrect === null) return null;
+    // Show feedback if the user submitted an answer OR if they clicked Give Up
+    // Also ensure the question object exists
+    if (!question || (!hasSubmitted && !showAnswerDirectly)) return null;
+
+    // Determine correctness status, defaulting to incorrect if giving up
+    const isCorrect = showAnswerDirectly ? false : question.isUserCorrect === true;
 
     return (
       <CardFooter className="border-t bg-card px-6 py-4">
         <Alert 
-          variant={question.isUserCorrect ? "default" : "destructive"} 
+          variant={isCorrect ? "default" : "destructive"} 
           className={`w-full border-l-4 shadow-sm ${
-            question.isUserCorrect ? 'border-[#1ed760] border-l-[#1ed760]' : ''
+            isCorrect ? 'border-[#1ed760] border-l-[#1ed760]' : ''
           }`}
         >
           <div className="flex items-center gap-2">
-            {question.isUserCorrect ? (
+            {isCorrect ? (
               <motion.div
                 initial={{ scale: 0 }}
                 animate={{ scale: [0, 1.2, 1] }}
@@ -196,7 +220,7 @@ export default function QuestionDisplay({ question, onAnswerSubmit, questionInde
               <XCircle className="h-5 w-5 text-[#ff3333]" />
             )}
             <AlertTitle className="text-base">
-              {question.isUserCorrect 
+              {isCorrect 
                 ? (
                   <motion.span
                     initial={{ opacity: 0 }}
@@ -206,13 +230,15 @@ export default function QuestionDisplay({ question, onAnswerSubmit, questionInde
                     Correct Answer!
                   </motion.span>
                 ) 
+                : showAnswerDirectly 
+                ? 'Answer Revealed' // Different title for Give Up
                 : 'Incorrect Answer'
               }
             </AlertTitle>
           </div>
           
-          {/* Show explanation if available and user is incorrect */}
-          {!question.isUserCorrect && 'explanation' in question && question.explanation && (
+          {/* Show explanation if available and NOT correct (or if given up) */}
+          {!isCorrect && 'explanation' in question && question.explanation && (
             <AlertDescription className="mt-4 pb-3 border-b border-[#ff3333]/20">
               <h3 className="font-medium mb-2 text-base text-[#ff3333]/90">Explanation:</h3>
               <div className="pl-2 text-sm bg-[#ff3333]/5 p-3 rounded-md">
@@ -227,8 +253,8 @@ export default function QuestionDisplay({ question, onAnswerSubmit, questionInde
             </AlertDescription>
           )}
           
-          {/* Show correct answers if user is incorrect */}
-          {!question.isUserCorrect && question.type === 'text-input' && (
+          {/* Show correct text answers if NOT correct (or if given up) */}
+          {!isCorrect && question.type === 'text-input' && (
             <AlertDescription className="mt-4">
               <div className="flex items-center bg-[#ff3333]/5 p-3 rounded-md">
                 <div className="text-sm">
@@ -243,7 +269,8 @@ export default function QuestionDisplay({ question, onAnswerSubmit, questionInde
             </AlertDescription>
           )}
           
-          {question.type === 'multiple-choice' && !question.isUserCorrect && (
+          {/* Show correct MC answer if NOT correct (or if given up) */}
+          {!isCorrect && question.type === 'multiple-choice' && (
             <AlertDescription className="mt-4">
               <div className="flex items-center bg-[#ff3333]/5 p-3 rounded-md">
                 <div className="text-sm">
@@ -290,68 +317,84 @@ export default function QuestionDisplay({ question, onAnswerSubmit, questionInde
         <CardContent className="pt-6">
           {/* Question Input - varies by type */}
           {question.type === 'multiple-choice' ? (
-            // Multiple Choice Options
-            <div className="space-y-3">
-              {question.options.map((option) => {
-                const isSelected = inputValue === option.id;
-                const showResult = hasSubmitted && showFeedback;
-                const isActuallyCorrect = option.isCorrect;
-                const wasUserCorrect = question.isUserCorrect === true;
-                
-                let optionClass = "w-full text-left p-4 rounded-lg border-2 transition-colors";
-                
-                if (showResult) {
-                  if (isSelected && wasUserCorrect) {
-                    optionClass += " bg-[#1ed760]/10 border-[#1ed760]";
-                  } else if (isSelected && !wasUserCorrect) {
-                    optionClass += " bg-[#ff3333]/10 border-[#ff3333]";
-                  } else if (isActuallyCorrect) {
-                    optionClass += " bg-[#1ed760]/5 border-[#1ed760]/50";
+            // Fragment to group MC options and buttons
+            <>
+              {/* Multiple Choice Options */}
+              <div className="space-y-3">
+                {question.options.map((option) => {
+                  const isSelected = inputValue === option.id;
+                  const showResult = hasSubmitted || showAnswerDirectly;
+                  const isActuallyCorrect = option.isCorrect === true;
+                  const wasUserCorrect = showAnswerDirectly ? false : question.isUserCorrect === true;
+                  
+                  let optionClass = "w-full text-left p-4 rounded-lg border-2 transition-colors";
+                  
+                  if (showResult) {
+                    if (isSelected && wasUserCorrect) {
+                      optionClass += " bg-[#1ed760]/10 border-[#1ed760]";
+                    } else if (isSelected && !wasUserCorrect) {
+                      optionClass += " bg-[#ff3333]/10 border-[#ff3333]";
+                    } else if (isActuallyCorrect) {
+                      optionClass += " bg-[#1ed760]/5 border-[#1ed760]/50";
+                    } else {
+                      optionClass += " bg-accent/10 border-accent/20";
+                    }
                   } else {
-                    optionClass += " bg-accent/10 border-accent/20";
+                    optionClass += " bg-accent/10 hover:bg-accent/20 border-accent/20";
+                    if (isSelected) {
+                      optionClass += " border-primary";
+                    }
                   }
-                } else {
-                  optionClass += " bg-accent/10 hover:bg-accent/20 border-accent/20";
-                  if (isSelected) {
-                    optionClass += " border-primary";
-                  }
-                }
-                
-                return (
-                  <motion.button 
-                    key={option.id}
-                    type="button"
-                    onClick={() => handleMultipleChoiceSelect(option.id)}
-                    className={optionClass}
-                    whileHover={{ scale: hasSubmitted ? 1 : 1.01 }}
-                    whileTap={{ scale: hasSubmitted ? 1 : 0.99 }}
-                    disabled={hasSubmitted}
-                  >
-                    <div className="flex items-start">
-                      <div className="flex-grow">
-                        <div className="font-medium">
-                          {option.id.toUpperCase()}. {formatText(option.text)}
+                  
+                  return (
+                    <motion.button 
+                      key={option.id}
+                      type="button"
+                      onClick={() => !showResult && handleMultipleChoiceSelect(option.id)} 
+                      className={optionClass}
+                      whileHover={{ scale: showResult ? 1 : 1.01 }}
+                      whileTap={{ scale: showResult ? 1 : 0.99 }}
+                      disabled={showResult}
+                    >
+                      <div className="flex items-start">
+                        <div className="flex-grow">
+                          <div className="font-medium">
+                            {option.id.toUpperCase()}. {formatText(option.text)}
+                          </div>
                         </div>
+                        {showResult && (
+                          <div className="flex-shrink-0 ml-2">
+                            {isActuallyCorrect && (
+                              <Check className="h-5 w-5 text-[#1ed760]" />
+                            )}
+                            {isSelected && !isActuallyCorrect && (
+                              <X className="h-5 w-5 text-[#ff3333]" />
+                            )}
+                          </div>
+                        )}
                       </div>
-                      
-                      {showResult && (
-                        <div className="flex-shrink-0 ml-2">
-                          {isSelected && wasUserCorrect && (
-                            <Check className="h-5 w-5 text-[#1ed760]" />
-                          )}
-                          {isSelected && !wasUserCorrect && (
-                            <X className="h-5 w-5 text-[#ff3333]" />
-                          )}
-                          {!isSelected && isActuallyCorrect && (
-                            <Check className="h-5 w-5 text-[#1ed760]/50" />
-                          )}
-                        </div>
-                      )}
-                    </div>
-                  </motion.button>
-                );
-              })}
-            </div>
+                    </motion.button>
+                  );
+                })}
+              </div>
+              
+              {/* Buttons for Multiple Choice: Try Again, Give Up */}
+              {!hasSubmitted && (
+                <div className="flex justify-end mt-4"> 
+                  <Button type="button" variant="outline" onClick={handleGiveUp}>
+                    Give Up
+                  </Button>
+                </div>
+              )}
+              {/* Show Try Again if submitted incorrectly OR if gave up */}
+              {(hasSubmitted && !question.isUserCorrect) || showAnswerDirectly ? (
+                <div className="flex justify-end mt-4"> 
+                  <Button type="button" variant="outline" onClick={handleTryAgain}>
+                    Try Again
+                  </Button>
+                </div>
+              ) : null}
+            </>
           ) : (
             // Text Input
             <form onSubmit={handleSubmit} className="space-y-4">
@@ -385,18 +428,31 @@ export default function QuestionDisplay({ question, onAnswerSubmit, questionInde
                 </div>
               </div>
               
+              {/* Buttons: Submit, Try Again, Give Up */}
               {!hasSubmitted && (
-                <motion.div whileHover={{ scale: 1.01 }} whileTap={{ scale: 0.99 }}>
-                  <Button type="submit" className="w-full">
+                <div className="flex flex-col sm:flex-row gap-2 mt-4">
+                  <Button type="submit" className="flex-1">
                     Submit Answer
                   </Button>
-                </motion.div>
+                  <Button type="button" variant="outline" className="flex-1" onClick={handleGiveUp}>
+                    Give Up
+                  </Button>
+                </div>
               )}
+              {/* Show Try Again if submitted incorrectly OR if gave up */}
+              {(hasSubmitted && !question.isUserCorrect) || showAnswerDirectly ? (
+                <div className="flex flex-col sm:flex-row gap-2 mt-4">
+                  <Button type="button" variant="outline" className="flex-1" onClick={handleTryAgain}>
+                    Try Again
+                  </Button>
+                </div>
+              ) : null}
             </form>
           )}
         </CardContent>
 
-        {renderFeedback()}
+        {/* Conditionally render feedback only if submitted or given up */}
+        {(hasSubmitted || showAnswerDirectly) && renderFeedback()}
       </Card>
     </motion.div>
   );
