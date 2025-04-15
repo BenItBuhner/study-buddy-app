@@ -3,8 +3,9 @@
 import React, { useState } from 'react';
 import { StudySet, Question } from '@/types/studyTypes';
 import { Button } from '@/components/ui/button';
-import { CopyIcon, CheckIcon, BookOpen, AlertTriangle } from 'lucide-react';
+import { CopyIcon, CheckIcon, BookOpen, AlertTriangle, Sparkles } from 'lucide-react';
 import { Card } from '@/components/ui/card';
+import { useAIGeneration } from '@/contexts/AIGenerationContext';
 
 interface JsonInputAreaProps {
   onJsonLoaded: (studySet: StudySet) => void;
@@ -16,6 +17,7 @@ export default function JsonInputArea({ onJsonLoaded }: JsonInputAreaProps) {
   const [loading, setLoading] = useState(false);
   const [copied, setCopied] = useState(false);
   const [preprocessingInfo, setPreprocessingInfo] = useState<string | null>(null);
+  const { openAIModal } = useAIGeneration();
 
   // Handle direct text input
   const handleTextareaChange = (event: React.ChangeEvent<HTMLTextAreaElement>) => {
@@ -496,14 +498,25 @@ Please create a study set with as many questions as needed for the user to study
           </div>
         )}
         
-        {/* Load Button */}
-        <Button
-          onClick={processJson}
-          disabled={loading}
-          className="w-full"
-        >
-          {loading ? 'Processing...' : 'Load Study Set'}
-        </Button>
+        {/* Action Buttons - Load & AI Generate */}
+        <div className="flex flex-col sm:flex-row gap-2">
+          <Button
+            onClick={processJson}
+            disabled={loading}
+            className="flex-1"
+          >
+            {loading ? 'Processing...' : 'Load Study Set'}
+          </Button>
+          <Button 
+            variant="outline"
+            onClick={() => openAIModal()}
+            disabled={loading}
+            className="flex-1"
+          >
+            <Sparkles className="h-4 w-4 mr-2" />
+            Generate with AI
+          </Button>
+        </div>
       </div>
     </div>
   );

@@ -62,10 +62,14 @@ interface AIGenerationModalProps {
   isOpen: boolean;
   onClose: () => void;
   onStudySetGenerated: (studySet: StudySet) => void;
+  studySetToEdit?: StudySet | null;
 }
 
-export default function AIGenerationModal({ isOpen, onClose, onStudySetGenerated }: AIGenerationModalProps) {
+export default function AIGenerationModal({ isOpen, onClose, onStudySetGenerated, studySetToEdit }: AIGenerationModalProps) {
   const { streamText } = useAIGeneration();
+  
+  // Determine if we are in edit mode
+  const isEditMode = !!studySetToEdit;
   
   // Form
   const form = useForm<FormValues>({
@@ -73,7 +77,7 @@ export default function AIGenerationModal({ isOpen, onClose, onStudySetGenerated
     defaultValues: {
       apiKey: '',
       model: 'gemini-2.0-flash',
-      prompt: '',
+      prompt: isEditMode ? 'Please add a question about...' : 'Create a study set about...',
       url: '',
     },
   });
@@ -92,21 +96,24 @@ export default function AIGenerationModal({ isOpen, onClose, onStudySetGenerated
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [autoScrollEnabled, setAutoScrollEnabled] = useState(true);
 
-  // Load saved API key and model preference on mount and when modal opens
+  // Load saved API key/model and potentially prefill prompt if editing
   useEffect(() => {
     if (isOpen) {
       const savedApiKey = loadAIApiKey();
       const savedModel = loadAIModelPreference();
-      
-      if (savedApiKey) {
-        form.setValue('apiKey', savedApiKey);
-      }
-      
-      if (savedModel) {
-        form.setValue('model', savedModel);
-      }
+      if (savedApiKey) form.setValue('apiKey', savedApiKey);
+      if (savedModel) form.setValue('model', savedModel);
+
+      // Reset prompt if needed, especially for edit mode start
+      form.setValue('prompt', isEditMode ? '' : 'Create a study set about...');
+      setAttachments([]);
+      setCurrentAttachmentIndex(0);
+      setError(null);
+      setStreamedText('');
+      setIsStreaming(false);
+      setAutoScrollEnabled(true);
     }
-  }, [isOpen, form]);
+  }, [isOpen, isEditMode, form]);
 
   // Optimized auto-scroll with FAST, smooth, glitch-free motion
   useEffect(() => {
@@ -417,33 +424,27 @@ export default function AIGenerationModal({ isOpen, onClose, onStudySetGenerated
       setError(null);
       setStreamedText('');
       
-      // Use the streaming API
+      // Call streamText, passing the original set if in edit mode
       await streamText(
         data.apiKey,
         data.model,
         data.prompt,
         attachments,
-        // Stream update callback
-        (text) => {
-          // Find only the new text that was added
-          // const newChunk = text.slice(streamedText.length);
-          // setLastChunk(newChunk);
-          setStreamedText(text);
-        },
-        // Complete callback
+        (text) => setStreamedText(text),
         (studySet) => {
           setIsGenerating(false);
           setIsStreaming(false);
           onStudySetGenerated(studySet);
           onClose();
         },
-        // Error callback
         (err) => {
           console.error('Error generating study set:', err);
           setError(err.message || 'Failed to generate study set.');
           setIsGenerating(false);
           setIsStreaming(false);
-        }
+        },
+        // Explicitly pass null if studySetToEdit is undefined or null
+        studySetToEdit ? studySetToEdit : null 
       );
     } catch (err) {
       console.error('Error setting up streaming:', err);
@@ -549,9 +550,11 @@ export default function AIGenerationModal({ isOpen, onClose, onStudySetGenerated
     <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
       <DialogContent className="sm:max-w-[600px] max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>Generate Study Set with AI</DialogTitle>
+          <DialogTitle>{isEditMode ? 'Edit Study Set with AI' : 'Generate Study Set with AI'}</DialogTitle>
           <DialogDescription>
-            Create a new study set using AI. You can provide a prompt and attach files or URLs to help the AI generate relevant questions.
+            {isEditMode 
+              ? `Provide instructions to modify the study set titled "${studySetToEdit?.title}". You can add, remove, or change questions.`
+              : 'Create a new study set using AI. Provide a topic and optional context (files/URLs).'}
           </DialogDescription>
         </DialogHeader>
 
@@ -612,10 +615,12 @@ export default function AIGenerationModal({ isOpen, onClose, onStudySetGenerated
               name="prompt"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Prompt (Topic for Study Set)</FormLabel>
+                  <FormLabel>{isEditMode ? 'Edit Instructions' : 'Prompt (Topic for Study Set)'}</FormLabel>
                   <FormControl>
                     <Textarea 
-                      placeholder="Describe what you want to study, e.g., 'Advanced calculus with derivatives and integrals'"
+                      placeholder={isEditMode 
+                        ? "Describe the changes, e.g., 'Add 3 questions about mitochondria.', 'Remove question q2.', 'Change option C in q1 to be correct.'"
+                        : "Describe what you want to study, e.g., 'Advanced calculus with derivatives and integrals'"}
                       className="min-h-[100px]"
                       {...field} 
                     />
@@ -801,7 +806,7 @@ export default function AIGenerationModal({ isOpen, onClose, onStudySetGenerated
               </Button>
               <Button type="submit" disabled={isGenerating}>
                 {isGenerating && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                {isGenerating ? 'Generating...' : 'Generate Study Set'}
+                {isGenerating ? (isEditMode ? 'Applying Edits...' : 'Generating...') : (isEditMode ? 'Apply Edits' : 'Generate Study Set')}
               </Button>
             </DialogFooter>
           </form>

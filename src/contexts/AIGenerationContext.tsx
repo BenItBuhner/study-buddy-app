@@ -11,13 +11,14 @@ import { v4 as uuidv4 } from 'uuid';
 
 interface AIGenerationContextType {
   isAIModalOpen: boolean;
-  openAIModal: () => void;
+  openAIModal: (setForEditing?: StudySet | null) => void;
   closeAIModal: () => void;
   processAttachments: (apiKey: string, model: string, prompt: string, attachments: Attachment[]) => Promise<StudySet>;
   streamText: (apiKey: string, model: string, prompt: string, attachments: Attachment[], 
                onStreamUpdate: (text: string) => void, 
                onComplete: (studySet: StudySet) => void,
-               onError: (error: Error) => void) => Promise<void>;
+               onError: (error: Error) => void,
+               originalStudySet: StudySet | null) => Promise<void>;
   listAvailableModels: (apiKey: string) => Promise<string[]>;
 }
 
@@ -41,15 +42,18 @@ interface AIGenerationProviderProps {
 
 export function AIGenerationProvider({ children }: AIGenerationProviderProps) {
   const [isAIModalOpen, setIsAIModalOpen] = useState(false);
-  const { loadStudySet } = useStudySession();
+  const [studySetToEdit, setStudySetToEdit] = useState<StudySet | null>(null);
+  const { loadStudySet, deleteStudySet } = useStudySession();
   const router = useRouter();
 
-  const openAIModal = () => {
+  const openAIModal = (setForEditing: StudySet | null = null) => {
+    setStudySetToEdit(setForEditing);
     setIsAIModalOpen(true);
   };
 
   const closeAIModal = () => {
     setIsAIModalOpen(false);
+    setStudySetToEdit(null);
   };
 
   // Function to extract JSON from text
@@ -295,13 +299,13 @@ ${prompt}
   const streamText = async (
     apiKey: string, 
     modelName: string, 
-    prompt: string, 
+    prompt: string, // This is the user's edit instruction in edit mode
     attachments: Attachment[],
     onStreamUpdate: (text: string) => void,
     onComplete: (studySet: StudySet) => void,
-    onError: (error: Error) => void
+    onError: (error: Error) => void,
+    originalStudySet: StudySet | null // Pass the original set if editing
   ): Promise<void> => {
-    // For gemini-2.5-pro models, implement fallback from exp to preview if needed
     const tryWithFallback = async (currentModelName: string): Promise<void> => {
       try {
         // Determine maxOutputTokens based on model
@@ -317,8 +321,70 @@ ${prompt}
         const genAI = new GoogleGenerativeAI(apiKey);
         const model = genAI.getGenerativeModel({ model: currentModelName });
 
-        // Build the prompt template - same as in processAttachments
-        const promptTemplate = `
+        // --- Construct the prompt based on mode (Create vs Edit) ---
+        let finalPrompt = '';
+        if (originalStudySet) {
+          // EDIT MODE PROMPT
+          const originalJsonString = JSON.stringify(originalStudySet, (key, value) => {
+            // Remove internal state fields before sending to AI
+            if (key === 'answer' || key === 'isUserCorrect' || key === 'lastAccessed' || key === 'createdAt' || key === 'isPinned') {
+              return undefined;
+            }
+            return value;
+          }, 2);
+
+          finalPrompt = `
+You are editing an existing StudyBuddy JSON study set. The user wants to modify it based on their instructions.
+
+**Original Study Set JSON:**
+\`\`\`json
+${originalJsonString}
+\`\`\`
+
+**User's Edit Instructions:**
+${prompt}
+
+**Task:**
+Modify the original JSON based *only* on the user's instructions. Maintain the exact JSON schema defined below. Ensure all original questions that are *not* explicitly mentioned for modification are kept as they are. Output *only* the complete, modified JSON object, starting with { and ending with }.
+
+**JSON Schema Definition:**
+\`\`\`json
+{
+  "title": "Study Set Title",
+  "settings": {
+    "persistSession": true
+  },
+  "questions": [
+    {
+      "id": "q1", // Must be unique, keep original IDs if possible
+      "type": "multiple-choice", // "multiple-choice" or "text-input"
+      "text": ["Main text", "Optional hint"],
+      "options": [
+        {"id": "a", "text": "Option A"},
+        {"id": "b", "text": "Option B", "isCorrect": true} // Exactly one correct option
+      ]
+    },
+    {
+      "id": "q2",
+      "type": "text-input",
+      "text": ["Question text"],
+      "correctAnswers": ["Answer1", "Answer2"], // At least one correct answer
+      "explanation": "Optional explanation"
+    }
+  ]
+}
+\`\`\`
+
+**Important Notes for Editing:**
+- **Preserve Unchanged Content:** Keep all questions and their properties (IDs, text, options, answers, explanations) exactly the same unless the user explicitly asks to change them.
+- **Maintain Schema:** The output must strictly follow the JSON schema.
+- **IDs:** Try to reuse existing question IDs. If adding new questions, generate simple new IDs (e.g., qN+1, qN+2).
+- **LaTeX:** Remember to double escape all backslashes in LaTeX (e.g., \\\\( E = mc^2 \\\\)).
+- **Output Only JSON:** Your entire response must be just the final JSON object.
+`;
+        } else {
+          // CREATE MODE PROMPT (Existing template)
+          finalPrompt = `
 I need help creating a JSON study set for my StudyBuddy app. Please format it exactly according to the schema below.
 
 \`\`\`json
@@ -333,7 +399,7 @@ I need help creating a JSON study set for my StudyBuddy app. Please format it ex
       "id": "q1", // Unique identifier for the question
       "type": "multiple-choice", // Must be either "multiple-choice" or "text-input"
       "text": [
-        "Main question text goes here. You can include LaTeX formulas like \\\\( x^2 + y^2 = z^2 \\\\)", 
+        "Main question text goes here. You can include LaTeX formulas like \\\\( x^2 + y^2 = z^2 \\\\)\", 
         "Optional additional paragraph or hint"
       ],
       "options": [
@@ -353,7 +419,7 @@ I need help creating a JSON study set for my StudyBuddy app. Please format it ex
       "correctAnswers": [
         "20", "x=20", "x = 20" // Multiple acceptable answers
       ],
-      "explanation": "Optional explanation: \\\\( \\\\frac{2x + 5}{3} = 15 \\\\) → \\\\( 2x + 5 = 45 \\\\) → \\\\( 2x = 40 \\\\) → \\\\( x = 20 \\\\)"
+      "explanation": "Optional explanation: \\\\( \\\\frac{2x + 5}{3} = 15 \\\\) → \\\\( 2x + 5 = 45 \\\\) → \\\\( 2x = 40 \\\\) → \\\\( x = 20 \\\\)\""
     }
   ]
 }
@@ -383,14 +449,15 @@ I need help creating a JSON study set for my StudyBuddy app. Please format it ex
 Please create a study set with questions about the following topic:
 ${prompt}
 `;
+        }
+        // --- End of prompt construction ---
 
-        // Prepare the generation parts - same as in processAttachments
-        const parts: Part[] = [{ text: promptTemplate }];
+        // Prepare the generation parts
+        const parts: Part[] = [{ text: finalPrompt }];
 
-        // Add attachments as parts (if any) - same as in processAttachments
+        // Add attachments as parts (if any) - same logic as before
         for (const attachment of attachments) {
           if (attachment.type === 'image') {
-            // For images, add them as inline parts
             if (attachment.content.startsWith('data:image')) {
               const base64Data = attachment.content.split(',')[1];
               parts.push({
@@ -402,26 +469,18 @@ ${prompt}
               parts.push({ text: `\nThe above image is called: ${attachment.name}\n` });
             }
           } else if (attachment.type === 'text') {
-            // For text files, add their content directly
             parts.push({ text: `\nContent from ${attachment.name}:\n${attachment.content}\n` });
           } else if (attachment.type === 'url') {
-            // For URLs, include the HTML content if available
             if (attachment.htmlContent) {
-              // Add the URL as reference
               parts.push({ text: `\n--- Content from URL: ${attachment.content} ---\n` });
-              
-              // Clean HTML and include a truncated version (to avoid token limits)
               const cleanedHtml = extractTextFromHtml(attachment.htmlContent);
               const truncatedContent = cleanedHtml.substring(0, 10000);
               parts.push({ text: truncatedContent });
-              
               parts.push({ text: `\n--- End of content from URL: ${attachment.content} ---\n` });
             } else {
-              // Fallback to just mentioning the URL
               parts.push({ text: `\nPlease use information from this URL: ${attachment.content}\n` });
             }
           } else {
-            // For other types, just mention them
             parts.push({ text: `\nContent referenced from ${attachment.name} (${attachment.type})\n` });
           }
         }
@@ -447,7 +506,6 @@ ${prompt}
         }
 
         // After streaming is complete, try to extract and process the JSON
-        // Extract JSON from the response
         const jsonText = extractJsonFromText(fullResponseText);
         
         if (!jsonText) {
@@ -467,19 +525,20 @@ ${prompt}
         }
 
         // Prepare study set with all required fields
-        const studySet: StudySet = {
+        // Keep the original ID if editing, generate a new one if creating
+        const finalStudySet: StudySet = {
           ...parsedData,
-          id: uuidv4(),
-          createdAt: Date.now(),
+          id: originalStudySet ? originalStudySet.id : uuidv4(), 
+          createdAt: originalStudySet ? originalStudySet.createdAt : Date.now(), // Keep original creation time if editing
           lastAccessed: Date.now(),
+          isPinned: originalStudySet ? originalStudySet.isPinned : false, // Keep original pinned status
           settings: {
-            ...(parsedData.settings || {}),
+            ...(parsedData.settings || originalStudySet?.settings || {}),
             persistSession: true,
           },
-          // Initialize answer and isUserCorrect fields
           questions: parsedData.questions.map((q: Partial<Question>) => ({
             ...q,
-            answer: null,
+            answer: null, // Always reset answers on create/edit
             isUserCorrect: null,
           }))
         };
@@ -488,34 +547,27 @@ ${prompt}
         saveAIApiKey(apiKey);
         saveAIModelPreference(currentModelName);
 
-        // Call the completion callback with the study set
-        onComplete(studySet);
+        // Call the completion callback with the final study set
+        onComplete(finalStudySet);
         
       } catch (error: unknown) {
         console.error('Error streaming text:', error);
         
-        // Check if this is a model not found error and we're using the first version of Gemini 2.5
         if (currentModelName === 'gemini-2.5-pro-exp-03-25' && 
-            error instanceof Error &&
-            error.message && 
-            error.message.includes('models/') && 
-            error.message.includes('is not found')) {
-          
+            error instanceof Error && error.message && 
+            error.message.includes('models/') && error.message.includes('is not found')) {
           console.log('Trying fallback model: gemini-2.5-pro-preview-03-25');
-          // Try with the fallback model
           try {
             await tryWithFallback('gemini-2.5-pro-preview-03-25');
           } catch (fallbackError) {
             onError(fallbackError instanceof Error ? fallbackError : new Error('Unknown error occurred during fallback streaming'));
           }
         } else {
-          // Different error or we're already using the fallback, so propagate the error
           onError(error instanceof Error ? error : new Error('Unknown error occurred during streaming'));
         }
       }
     };
     
-    // Start with the requested model
     try {
       await tryWithFallback(modelName);
     } catch (error) {
@@ -524,20 +576,22 @@ ${prompt}
   };
 
   const handleStudySetGenerated = (studySet: StudySet) => {
-    // Ensure the study set has all required properties for proper saving
+    // If we were editing, delete the original study set first
+    if (studySetToEdit) {
+      console.log(`Deleting original study set (ID: ${studySetToEdit.id}) before saving edited version.`);
+      deleteStudySet(studySetToEdit.id);
+    }
+    
+    // Prepare the final study set (ensuring all fields are present)
     const preparedStudySet: StudySet = {
       ...studySet,
-      // Generate ID if not present
-      id: studySet.id || uuidv4(),
-      // Add timestamps
+      id: studySet.id || uuidv4(), // Ensure ID exists
       createdAt: studySet.createdAt || Date.now(),
       lastAccessed: Date.now(),
-      // Ensure settings exist and have persistSession set to true
       settings: {
         ...(studySet.settings || {}),
         persistSession: true
       },
-      // Initialize question state for all questions
       questions: studySet.questions.map(q => ({
         ...q,
         answer: q.answer ?? null,
@@ -546,6 +600,7 @@ ${prompt}
     };
 
     // Manually save the study set to cookies first to ensure it's persisted
+    console.log(`Saving ${studySetToEdit ? 'edited' : 'new'} study set (ID: ${preparedStudySet.id})`);
     saveSessionToCookie(preparedStudySet);
     
     // Then load it into the active session context
@@ -610,6 +665,7 @@ ${prompt}
         isOpen={isAIModalOpen} 
         onClose={closeAIModal} 
         onStudySetGenerated={handleStudySetGenerated} 
+        studySetToEdit={studySetToEdit}
       />
     </AIGenerationContext.Provider>
   );

@@ -31,6 +31,8 @@ interface StudySessionContextType {
   resetStudySetProgress: (id: string) => void;
   goToQuestion: (index: number) => void;
   saveCurrentSession: () => boolean;
+  renameStudySet: (id: string, newTitle: string) => Promise<void>;
+  togglePinStudySet: (id: string) => void;
 }
 
 // Create the context
@@ -247,6 +249,62 @@ export function StudySessionProvider({ children }: { children: ReactNode }) {
     }
   };
 
+  // Rename a study set
+  const renameStudySet = async (id: string, newTitle: string): Promise<void> => {
+    const sessionToRename = loadSessionFromCookie(id);
+    if (!sessionToRename) {
+      throw new Error("Study set not found to rename.");
+    }
+
+    // Update the title
+    const updatedSet = {
+      ...sessionToRename,
+      title: newTitle,
+      lastAccessed: Date.now() // Also update last accessed time
+    };
+
+    // Save the updated set back
+    saveSessionToCookie(updatedSet);
+
+    // If the currently loaded set is the one being renamed, update its state too
+    if (studySet && studySet.id === id) {
+      setStudySet(updatedSet);
+    }
+    
+    // No need to return anything, but the promise resolves on success
+  };
+
+  // Toggle the pinned state of a study set
+  const togglePinStudySet = (id: string) => {
+    const sessionToToggle = loadSessionFromCookie(id);
+    if (!sessionToToggle) {
+      console.error("Study set not found to toggle pin state.");
+      return;
+    }
+
+    // Update the pinned state
+    const updatedSet = {
+      ...sessionToToggle,
+      isPinned: !sessionToToggle.isPinned, // Toggle the boolean value
+      lastAccessed: Date.now() // Update last accessed to potentially influence sorting among unpinned items
+    };
+
+    // Save the updated set back
+    saveSessionToCookie(updatedSet);
+
+    // If the currently loaded set is the one being toggled, update its state too
+    // Note: This might not be strictly necessary for pinning, but keeps state consistent
+    if (studySet && studySet.id === id) {
+      setStudySet(updatedSet);
+    }
+    
+    // Refresh the list on the main page after pinning/unpinning
+    // This requires triggering a state update on the Home component.
+    // A simple way is to add a state variable that increments on pin/unpin,
+    // but for now, we rely on the Home component refreshing its list.
+    // We might need to enhance this if the Home component list doesn't update.
+  };
+
   // Context value
   const value: StudySessionContextType = {
     studySet,
@@ -261,6 +319,8 @@ export function StudySessionProvider({ children }: { children: ReactNode }) {
     resetStudySetProgress: resetStudySetProgressLocal,
     goToQuestion,
     saveCurrentSession,
+    renameStudySet,
+    togglePinStudySet
   };
 
   return (

@@ -16,7 +16,11 @@ import {
   Clock,
   AlertCircle,
   Sparkles,
-  Download
+  Download,
+  Pencil,
+  Pin,
+  PinOff,
+  Type
 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { ThemeToggle } from '@/components/ThemeToggle';
@@ -32,6 +36,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { exportStudySet } from '@/utils/exportUtils';
+import RenameDialog from '@/components/RenameDialog';
 
 export default function Home() {
   const router = useRouter();
@@ -41,7 +46,9 @@ export default function Home() {
     // resetSession, // Unused in this component
     getAllSavedSessions,
     deleteStudySet,
-    resetStudySetProgress
+    resetStudySetProgress,
+    renameStudySet,
+    togglePinStudySet
   } = useStudySession();
   const { openAIModal } = useAIGeneration();
 
@@ -49,14 +56,23 @@ export default function Home() {
   const [jsonInputVisible, setJsonInputVisible] = useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [resetDialogOpen, setResetDialogOpen] = useState(false);
+  const [renameDialogOpen, setRenameDialogOpen] = useState(false);
   const [studySetToDelete, setStudySetToDelete] = useState<string | null>(null);
   const [studySetToReset, setStudySetToReset] = useState<string | null>(null);
+  const [studySetToRename, setStudySetToRename] = useState<StudySet | null>(null);
 
   // Load all saved sessions from cookies
   const loadSavedSessions = React.useCallback(() => {
     const sessions = getAllSavedSessions();
-    // Sort by last accessed time (most recent first)
-    sessions.sort((a, b) => (b.lastAccessed || 0) - (a.lastAccessed || 0));
+    // Sort by pinned status first, then by last accessed time (most recent first)
+    sessions.sort((a, b) => {
+      // If both have the same pinned status, sort by lastAccessed descending
+      if (a.isPinned === b.isPinned) {
+        return (b.lastAccessed || 0) - (a.lastAccessed || 0);
+      }
+      // Pinned items come first (true sorts before false/undefined)
+      return a.isPinned ? -1 : 1;
+    });
     setSavedSessions(sessions);
   }, [getAllSavedSessions]); // Added getAllSavedSessions dependency for useCallback
 
@@ -155,26 +171,36 @@ export default function Home() {
     }
   };
 
+  // Handle opening the rename dialog
+  const handleOpenRenameDialog = (e: React.MouseEvent, session: StudySet) => {
+    e.stopPropagation(); // Prevent card click
+    setStudySetToRename(session);
+    setRenameDialogOpen(true);
+  };
+
+  // Handle closing the rename dialog
+  const handleCloseRenameDialog = () => {
+    setRenameDialogOpen(false);
+    setStudySetToRename(null);
+    // Refresh the list after potential rename
+    loadSavedSessions(); 
+  };
+
+  // Handle toggling the pin status
+  const handleTogglePin = (e: React.MouseEvent, id: string) => {
+    e.stopPropagation(); // Prevent card click
+    togglePinStudySet(id);
+    // Refresh the list immediately to show the change
+    loadSavedSessions(); 
+  };
+
   return (
     <div>
       {/* Navigation Header */}
       <div className="flex flex-row items-center justify-between gap-4 bg-primary/5 p-4 rounded-xl mb-6">
-        {/* Left side - Recent sessions */}
-        <div className="flex items-center gap-4">
-          {/* Recent sessions shown only on medium+ screens */}
-          <div className="hidden sm:flex gap-2">
-            {savedSessions.slice(0, 3).map((session /*, index - Unused */) => (
-              <Button 
-                key={session.id}
-                variant="ghost" 
-                size="sm"
-                onClick={() => handleLoadStudySet(session)}
-                className="text-sm"
-              >
-                {session.title}
-              </Button>
-            ))}
-          </div>
+        {/* Left side - Removed Recent sessions */}
+        <div>
+          {/* Placeholder or leave empty */}
         </div>
         
         {/* Theme Toggle - Right aligned */}
@@ -223,19 +249,20 @@ export default function Home() {
                           )}
                         </div>
                         <div className="flex-shrink-0 flex flex-col items-end gap-1">
-                          {stats.answeredQuestions > 0 && stats.answeredQuestions < stats.totalQuestions ? (
-                            <span className="text-xs px-2 py-1 bg-[#1ed760]/10 text-[#1ed760] rounded-full whitespace-nowrap">
-                              In progress
-                            </span>
-                          ) : stats.answeredQuestions === stats.totalQuestions ? (
-                            <span className="text-xs px-2 py-1 bg-primary/10 text-primary rounded-full whitespace-nowrap">
-                              Completed
-                            </span>
-                          ) : (
-                            <span className="text-xs px-2 py-1 bg-accent/20 text-muted-foreground rounded-full whitespace-nowrap">
-                              Not started
-                            </span>
-                          )}
+                          {stats.answeredQuestions > 0 ? 
+                            (stats.answeredQuestions === stats.totalQuestions ? (
+                              <span className="text-xs px-2 py-1 bg-primary/10 text-primary rounded-full whitespace-nowrap">
+                                Completed
+                              </span>
+                            ) : (
+                              <span className="text-xs px-2 py-1 bg-[#1ed760]/10 text-[#1ed760] rounded-full whitespace-nowrap">
+                                In progress
+                              </span>
+                            )) : (
+                              <span className="text-xs px-2 py-1 bg-accent/20 text-muted-foreground rounded-full whitespace-nowrap">
+                                Not started
+                              </span>
+                            )}
                           {/* Controls - Reset progress button instead of delete */}
                           <div className="opacity-0 group-hover:opacity-100 sm:opacity-100 transition-opacity">
                             <Button
@@ -312,7 +339,7 @@ export default function Home() {
                     <Button 
                       size="sm"
                       variant="outline"
-                      onClick={openAIModal}
+                      onClick={() => openAIModal()}
                       className="shrink-0"
                     >
                       <Sparkles className="h-4 w-4 mr-2" />
@@ -333,7 +360,7 @@ export default function Home() {
                           >
                             <CardContent className="p-6 flex flex-col items-center text-center">
                               <BookOpen className="h-12 w-12 text-primary/50 mb-4" />
-                              <h3 className="font-medium mb-1 line-clamp-1">{session.title}</h3>
+                              <h3 className="font-medium mb-1 line-clamp-1 break-all">{session.title}</h3>
                               <p className="text-sm text-muted-foreground">
                                 {stats.answeredQuestions} of {stats.totalQuestions} answered
                               </p>
@@ -348,15 +375,44 @@ export default function Home() {
                                   <span className="text-xs px-2 py-1 mt-2 bg-[#1ed760]/10 text-[#1ed760] rounded-full inline-block">
                                     In progress
                                   </span>
-                                )
-                              ) : (
-                                <span className="text-xs px-2 py-1 mt-2 bg-accent/20 text-muted-foreground rounded-full inline-block">
-                                  Not started
-                                </span>
-                              )}
+                                )) : (
+                                  <span className="text-xs px-2 py-1 mt-2 bg-accent/20 text-muted-foreground rounded-full inline-block">
+                                    Not started
+                                  </span>
+                                )}
                               
                               {/* Control buttons - top right */}
                               <div className="absolute top-2 right-2 flex space-x-1">
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  className={`h-6 w-6 opacity-0 group-hover:opacity-100 text-muted-foreground hover:text-primary ${session.isPinned ? 'text-primary' : ''}`}
+                                  onClick={(e) => handleTogglePin(e, session.id)}
+                                  title={session.isPinned ? "Unpin set" : "Pin set"}
+                                >
+                                  {session.isPinned ? <Pin className="h-4 w-4" /> : <PinOff className="h-4 w-4" />}
+                                </Button>
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  className="h-6 w-6 opacity-0 group-hover:opacity-100 text-muted-foreground hover:text-primary"
+                                  onClick={(e) => handleOpenRenameDialog(e, session)}
+                                  title="Rename set"
+                                >
+                                  <Type className="h-4 w-4" />
+                                </Button>
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  className="h-6 w-6 opacity-0 group-hover:opacity-100 text-muted-foreground hover:text-primary"
+                                  onClick={(e) => {
+                                    e.stopPropagation(); // Prevent card click
+                                    openAIModal(session); // Pass session to edit
+                                  }}
+                                  title="Edit with AI"
+                                >
+                                  <Pencil className="h-4 w-4" />
+                                </Button>
                                 <Button
                                   variant="ghost"
                                   size="icon"
@@ -400,7 +456,7 @@ export default function Home() {
                         <Button 
                           size="lg"
                           variant="outline"
-                          onClick={openAIModal}
+                          onClick={() => openAIModal()}
                         >
                           <Sparkles className="mr-2 h-5 w-5" />
                           Generate with AI
@@ -452,6 +508,13 @@ export default function Home() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+      
+      {/* Rename Dialog */}
+      <RenameDialog 
+        isOpen={renameDialogOpen}
+        onClose={handleCloseRenameDialog}
+        studySet={studySetToRename}
+      />
     </div>
   );
 }

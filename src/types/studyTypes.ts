@@ -46,6 +46,7 @@ export interface StudySet {
   questions: Question[];
   createdAt?: number;
   lastAccessed?: number;
+  isPinned?: boolean;
 }
 
 // State for the study session
