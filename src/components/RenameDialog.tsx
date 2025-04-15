@@ -70,7 +70,7 @@ export default function RenameDialog({ isOpen, onClose, studySet }: RenameDialog
         <DialogHeader>
           <DialogTitle>Rename Study Set</DialogTitle>
           <DialogDescription>
-            Enter a new title for "{studySet.title}".
+            Enter a new title for &ldquo;{studySet.title}&rdquo;.
           </DialogDescription>
         </DialogHeader>
         <div className="py-4">

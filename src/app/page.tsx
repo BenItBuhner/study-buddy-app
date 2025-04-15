@@ -47,7 +47,7 @@ export default function Home() {
     getAllSavedSessions,
     deleteStudySet,
     resetStudySetProgress,
-    renameStudySet,
+    // renameStudySet, // Unused in this component
     togglePinStudySet
   } = useStudySession();
   const { openAIModal } = useAIGeneration();
