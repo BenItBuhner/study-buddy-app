@@ -39,7 +39,6 @@ const checkAnswer = (question: Question, userAnswer: string | null): boolean => 
 
 export default function QuestionDisplay({ question, onAnswerSubmit, questionIndex }: QuestionDisplayProps) {
   const [inputValue, setInputValue] = useState("");
-  const [isAnimating, setIsAnimating] = useState(false);
   const [showConfetti, setShowConfetti] = useState(false);
   const [showFeedback, setShowFeedback] = useState(false);
   const [hasSubmitted, setHasSubmitted] = useState(false);
@@ -98,7 +97,7 @@ export default function QuestionDisplay({ question, onAnswerSubmit, questionInde
       timeoutId = setTimeout(() => setShowConfetti(false), 3000); // Hide after 3 seconds
     }
     return () => clearTimeout(timeoutId);
-  }, [showConfetti]); // Added showConfetti
+  }, [showConfetti]); // Added showConfetti dependency
   
   // If no question is available, show a placeholder
   if (!question) {
@@ -250,7 +249,6 @@ export default function QuestionDisplay({ question, onAnswerSubmit, questionInde
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.4 }}
-      className={isAnimating ? "animate-pulse" : ""}
     >
       <Card className="w-full study-card overflow-hidden border-2">
         <CardHeader className="bg-primary/5 pb-4">

@@ -381,7 +381,7 @@ Please create a study set with as many questions as needed for the user to study
           }
           
           // Check if all correctAnswers are strings
-          const nonStringAnswer = question.correctAnswers.find((ans: any) => typeof ans !== 'string');
+          const nonStringAnswer = question.correctAnswers.find((ans: string) => typeof ans !== 'string');
           if (nonStringAnswer !== undefined) {
             throw new Error(`Question ${question.id} has a non-string value in correctAnswers`);
           }

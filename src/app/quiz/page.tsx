@@ -8,8 +8,6 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
 import { ArrowLeft, ArrowRight, Home, Award } from 'lucide-react';
 import { ThemeToggle } from '@/components/ThemeToggle';
-import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
-import { cn } from "@/lib/utils";
 import { motion } from 'framer-motion';
 import confetti from 'canvas-confetti';
 import LatexRenderer from '@/components/LatexRenderer';
