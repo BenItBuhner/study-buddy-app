@@ -491,11 +491,12 @@ ${prompt}
         // Call the completion callback with the study set
         onComplete(studySet);
         
-      } catch (error: any) {
+      } catch (error: unknown) {
         console.error('Error streaming text:', error);
         
         // Check if this is a model not found error and we're using the first version of Gemini 2.5
         if (currentModelName === 'gemini-2.5-pro-exp-03-25' && 
+            error instanceof Error &&
             error.message && 
             error.message.includes('models/') && 
             error.message.includes('is not found')) {
@@ -558,10 +559,7 @@ ${prompt}
   const listAvailableModels = async (apiKey: string): Promise<string[]> => {
     try {
       // Initialize the Generative AI with the API key
-      const genAI = new GoogleGenerativeAI(apiKey);
-      
-      // Attempt to fetch models from the API
-      // Since listModels isn't directly available, we'll try to fetch via API
+      // Note: We're not using genAI directly in this function, but keeping the API call
       const response = await fetch('https://generativelanguage.googleapis.com/v1beta/models?key=' + apiKey);
       
       if (!response.ok) {
@@ -589,9 +587,6 @@ ${prompt}
       console.error('Error listing models:', error);
       // Return a fallback list of models that are commonly available
       return [
-        'gemini-1.0-pro', 
-        'gemini-1.5-flash', 
-        'gemini-1.5-pro',
         'gemini-2.0-flash',
         'gemini-2.0-flash-thinking-exp-01-21',
         'gemini-2.5-pro-exp-03-25'
