@@ -304,7 +304,7 @@ Please create a study set with as many questions as needed for the user to study
             preprocessedJson = jsonInput.replace(/\\/g, '\\\\');
             parsedData = JSON.parse(preprocessedJson);
             setPreprocessingInfo("Applied aggressive LaTeX escape sequence fixing");
-          } catch (secondError) {
+          } catch (err: any) {
             // If that also fails, provide detailed error
             const positionMatch = errorMessage.match(/position (\d+)/);
             const errorPosition = positionMatch ? parseInt(positionMatch[1]) : undefined;

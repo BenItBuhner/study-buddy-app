@@ -97,7 +97,7 @@ export default function QuestionDisplay({ question, onAnswerSubmit, questionInde
       timeoutId = setTimeout(() => setShowConfetti(false), 3000); // Hide after 3 seconds
     }
     return () => clearTimeout(timeoutId);
-  }, [showConfetti]); // Added showConfetti dependency
+  }, [showConfetti]); // Add missing dependency
   
   // If no question is available, show a placeholder
   if (!question) {
