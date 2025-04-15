@@ -114,7 +114,7 @@ export default function QuizPage() {
             <CardHeader className="text-center bg-primary/5 pb-6">
               <Award className="h-16 w-16 text-primary mx-auto mb-2" />
               <CardTitle className="text-2xl">Quiz Completed!</CardTitle>
-              <CardDescription>You've completed the {studySet.title}</CardDescription>
+              <CardDescription>You&apos;ve completed the {studySet.title}</CardDescription>
             </CardHeader>
             
             <CardContent className="pt-6 space-y-6">

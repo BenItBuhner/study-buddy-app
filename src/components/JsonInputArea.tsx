@@ -40,9 +40,9 @@ export default function JsonInputArea({ onJsonLoaded }: JsonInputAreaProps) {
         const content = event.target?.result as string;
         setJsonInput(content);
         setLoading(false);
-      } catch (err: any) {
+      } catch (err: unknown) {
         console.error("Error reading file content:", err);
-        setError(`Failed to read file content: ${err.message}`);
+        setError(`Failed to read file content: ${err instanceof Error ? err.message : 'Unknown error'}`);
         setLoading(false);
       }
     };
@@ -304,7 +304,7 @@ Please create a study set with as many questions as needed for the user to study
             preprocessedJson = jsonInput.replace(/\\/g, '\\\\');
             parsedData = JSON.parse(preprocessedJson);
             setPreprocessingInfo("Applied aggressive LaTeX escape sequence fixing");
-          } catch (err: any) {
+          } catch (secondError: unknown) {
             // If that also fails, provide detailed error
             const positionMatch = errorMessage.match(/position (\d+)/);
             const errorPosition = positionMatch ? parseInt(positionMatch[1]) : undefined;
