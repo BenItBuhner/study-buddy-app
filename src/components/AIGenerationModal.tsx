@@ -34,12 +34,19 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { useAIGeneration, Attachment, AttachmentType } from '@/contexts/AIGenerationContext';
 import { StudySet } from '@/types/studyTypes';
 import { loadAIApiKey, loadAIModelPreference } from '@/utils/cookieUtils';
-import { Loader2, X, PlusCircle, FileText, Image, Link as LinkIcon, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Loader2, X, PlusCircle, FileText, Link as LinkIcon, ChevronLeft, ChevronRight } from 'lucide-react';
+import Image from 'next/image';
 import { Badge } from '@/components/ui/badge';
 import { TooltipProvider, Tooltip, TooltipTrigger, TooltipContent } from '@/components/ui/tooltip';
 import { v4 as uuidv4 } from 'uuid';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { motion, AnimatePresence, useScroll } from 'framer-motion';
+import { AnimatePresence } from 'framer-motion';
+
+// Define types for custom properties we add to DOM elements
+interface ScrollableElement extends Element {
+  scrollAnimation?: number;
+  scrollTimeout?: NodeJS.Timeout;
+}
 
 // Form schema validation
 const formSchema = z.object({
@@ -57,14 +64,8 @@ interface AIGenerationModalProps {
   onStudySetGenerated: (studySet: StudySet) => void;
 }
 
-// Define types for custom properties we add to DOM elements
-interface ScrollableElement extends Element {
-  scrollAnimation?: number;
-  scrollTimeout?: NodeJS.Timeout;
-}
-
 export default function AIGenerationModal({ isOpen, onClose, onStudySetGenerated }: AIGenerationModalProps) {
-  const { processAttachments, streamText } = useAIGeneration();
+  const { streamText } = useAIGeneration();
   
   // Form
   const form = useForm<FormValues>({
@@ -86,7 +87,6 @@ export default function AIGenerationModal({ isOpen, onClose, onStudySetGenerated
   const [currentAttachmentIndex, setCurrentAttachmentIndex] = useState(0);
   const [streamedText, setStreamedText] = useState<string>('');
   const [isStreaming, setIsStreaming] = useState(false);
-  const [lastChunk, setLastChunk] = useState<string>('');
   const streamContainerRef = useRef<HTMLDivElement>(null);
   const scrollAreaRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -336,7 +336,7 @@ export default function AIGenerationModal({ isOpen, onClose, onStudySetGenerated
     try {
       setIsUrlLoading(true);
       // Extract hostname for display
-      const hostname = new URL(currentUrl).hostname;
+      // const hostname = new URL(currentUrl).hostname;
       
       // Create initial attachment object
       const newAttachment: Attachment = {
@@ -403,6 +403,9 @@ export default function AIGenerationModal({ isOpen, onClose, onStudySetGenerated
       setAttachments([]);
       setCurrentAttachmentIndex(0);
       setError(null);
+      setStreamedText('');
+      setIsStreaming(false);
+      setAutoScrollEnabled(true);
     }
   }, [isOpen, form]);
 
@@ -413,7 +416,6 @@ export default function AIGenerationModal({ isOpen, onClose, onStudySetGenerated
       setIsStreaming(true);
       setError(null);
       setStreamedText('');
-      setLastChunk('');
       
       // Use the streaming API
       await streamText(
@@ -424,8 +426,8 @@ export default function AIGenerationModal({ isOpen, onClose, onStudySetGenerated
         // Stream update callback
         (text) => {
           // Find only the new text that was added
-          const newChunk = text.slice(streamedText.length);
-          setLastChunk(newChunk);
+          // const newChunk = text.slice(streamedText.length);
+          // setLastChunk(newChunk);
           setStreamedText(text);
         },
         // Complete callback
@@ -477,14 +479,15 @@ export default function AIGenerationModal({ isOpen, onClose, onStudySetGenerated
         return (
           <div className="relative w-full h-36 overflow-hidden rounded-md bg-muted">
             {attachment.content ? (
-              <img 
+              <Image 
                 src={attachment.content} 
-                alt={attachment.name || 'Image preview'} 
-                className="w-full h-full object-contain"
+                alt={attachment.name || 'Uploaded image preview'}
+                layout="fill"
+                objectFit="contain"
               />
             ) : (
               <div className="flex flex-col items-center justify-center w-full h-full text-muted-foreground">
-                <Image className="h-8 w-8 mb-2" />
+                <Image src="/placeholder.svg" alt="Loading placeholder" width={32} height={32} className="h-8 w-8 mb-2" />
                 <p className="text-sm">Loading image preview...</p>
               </div>
             )}
@@ -513,7 +516,7 @@ export default function AIGenerationModal({ isOpen, onClose, onStudySetGenerated
         return (
           <div className="flex items-center gap-2 p-2 rounded-md bg-muted">
             <FileText className="w-4 h-4" />
-            <span className="text-sm truncate">{attachment.name}</span>
+            <span className="text-sm truncate">{attachment.name || 'File attachment'}</span>
           </div>
         );
     }
@@ -735,10 +738,16 @@ export default function AIGenerationModal({ isOpen, onClose, onStudySetGenerated
                       className="cursor-pointer"
                       onClick={() => setCurrentAttachmentIndex(index)}
                     >
-                      {att.type === 'image' && <Image className="h-3 w-3 mr-1" />}
-                      {att.type === 'pdf' && <FileText className="h-3 w-3 mr-1" />}
-                      {att.type === 'text' && <FileText className="h-3 w-3 mr-1" />}
-                      {att.type === 'url' && <LinkIcon className="h-3 w-3 mr-1" />}
+                      {att.type === 'image' ? 
+                        <Image src="/image-icon.svg" alt="Image icon" width={12} height={12} className="h-3 w-3 mr-1" /> :
+                      att.type === 'pdf' ? 
+                        <FileText className="h-3 w-3 mr-1" /> :
+                      att.type === 'text' ? 
+                        <FileText className="h-3 w-3 mr-1" /> :
+                      att.type === 'url' ? 
+                        <LinkIcon className="h-3 w-3 mr-1" /> :
+                        <FileText className="h-3 w-3 mr-1" /> // Default icon
+                      }
                       <span className="truncate max-w-[150px]">
                         {att.type === 'url' ? new URL(att.content).hostname : att.name}
                       </span>

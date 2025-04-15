@@ -8,15 +8,14 @@ import {
   loadAllSessions,
   removeStudySet,
 } from '@/utils/cookieUtils';
-import { v4 as uuidv4 } from 'uuid';
 
-// Default state
-const defaultState = {
-  studySet: null,
-  currentQuestionIndex: 0,
-  isLoading: false,
-  error: null,
-};
+// Default state - Simplified, state managed directly
+// const defaultState = {
+//   studySet: null,
+//   currentQuestionIndex: 0,
+//   isLoading: false,
+//   error: null,
+// };
 
 // Context type with state and functions
 interface StudySessionContextType {
@@ -55,10 +54,10 @@ export function StudySessionProvider({ children }: { children: ReactNode }) {
     }
   }, []);
 
-  // Helper function to reset current question state
-  const resetQuestionState = () => {
-    setCurrentQuestionIndex(0);
-  };
+  // Helper function to reset current question state - Unused
+  // const resetQuestionState = () => {
+  //   setCurrentQuestionIndex(0);
+  // };
 
   // Load a study set
   const loadStudySet = (newStudySet: StudySet | null) => {

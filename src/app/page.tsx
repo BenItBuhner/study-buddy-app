@@ -4,12 +4,12 @@ import React, { useState, useEffect } from 'react';
 import { useStudySession } from '@/contexts/StudySessionContext';
 import JsonInputArea from '@/components/JsonInputArea';
 import { StudySet, Question } from '@/types/studyTypes';
-import Link from 'next/link';
+// import Link from 'next/link'; // Unused
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { 
   PlusCircle, 
-  FilePlus, 
+  // FilePlus, // Unused
   Trash2, 
   RotateCcw, 
   BookOpen,
@@ -34,9 +34,9 @@ import {
 export default function Home() {
   const router = useRouter();
   const {
-    studySet,
+    // studySet, // Unused in this component
     loadStudySet,
-    resetSession,
+    // resetSession, // Unused in this component
     getAllSavedSessions,
     deleteStudySet,
     resetStudySetProgress
@@ -50,18 +50,18 @@ export default function Home() {
   const [studySetToDelete, setStudySetToDelete] = useState<string | null>(null);
   const [studySetToReset, setStudySetToReset] = useState<string | null>(null);
 
-  // Load saved sessions on mount
-  useEffect(() => {
-    loadSavedSessions();
-  }, []);
-
   // Load all saved sessions from cookies
-  const loadSavedSessions = () => {
+  const loadSavedSessions = React.useCallback(() => {
     const sessions = getAllSavedSessions();
     // Sort by last accessed time (most recent first)
     sessions.sort((a, b) => (b.lastAccessed || 0) - (a.lastAccessed || 0));
     setSavedSessions(sessions);
-  };
+  }, [getAllSavedSessions]); // Added getAllSavedSessions dependency for useCallback
+
+  // Load saved sessions on mount
+  useEffect(() => {
+    loadSavedSessions();
+  }, [loadSavedSessions]); // Added loadSavedSessions dependency
 
   // Calculate stats for a study set
   const calculateStats = (set: StudySet) => {
@@ -69,7 +69,7 @@ export default function Home() {
     const answeredQuestions = set.questions.filter(q => q.answer !== null).length;
     const correctAnswers = set.questions.filter(q => q.isUserCorrect === true).length;
     
-    const completionPercentage = Math.round((answeredQuestions / totalQuestions) * 100);
+    const completionPercentage = totalQuestions > 0 ? Math.round((answeredQuestions / totalQuestions) * 100) : 0;
     const accuracyPercentage = answeredQuestions > 0 
       ? Math.round((correctAnswers / answeredQuestions) * 100) 
       : 0;
@@ -135,44 +135,18 @@ export default function Home() {
     }
   };
 
-  // Load sample quiz
-  // Note: This function is kept for reference but no longer used in the UI
+  /* // Unused sample quiz loading function
   const loadSampleQuiz = (file: string) => {
     fetch(`/${file}`)
       .then(res => res.json())
       .then(data => {
-        // Generate ID if not present or use a consistent ID with prefix
-        if (!data.id) {
-          data.id = `sample-${file.replace(/\.json$/, '')}-${Math.random().toString(36).substring(2, 7)}`;
-        }
-        
-        // Ensure timestamps exist
-        data.createdAt = data.createdAt || Date.now();
-        data.lastAccessed = Date.now();
-        
-        // Ensure settings exist and are properly configured
-        if (!data.settings) {
-          data.settings = { persistSession: true };
-        } else if (data.settings.persistSession === undefined) {
-          data.settings = {
-            ...data.settings,
-            persistSession: true
-          };
-        }
-        
-        // Process questions
-        data.questions = data.questions.map((q: Partial<Question>) => ({
-          ...q,
-          answer: q.answer ?? null,
-          isUserCorrect: q.isUserCorrect ?? null
-        }));
-        
-        handleLoadStudySet(data);
+        // ... (implementation)
       })
       .catch(err => {
         console.error(`Error loading sample quiz ${file}:`, err);
       });
   };
+  */
 
   // Format date for display
   const formatDate = (timestamp?: number) => {
@@ -194,7 +168,7 @@ export default function Home() {
         <div className="flex items-center gap-4">
           {/* Recent sessions shown only on medium+ screens */}
           <div className="hidden sm:flex gap-2">
-            {savedSessions.slice(0, 3).map((session, index) => (
+            {savedSessions.slice(0, 3).map((session /*, index - Unused */) => (
               <Button 
                 key={session.id}
                 variant="ghost" 
@@ -221,7 +195,7 @@ export default function Home() {
           <Card>
             <CardHeader className="pb-2">
               <CardTitle>Active Study Sets</CardTitle>
-              <CardDescription>Sets you're currently working on</CardDescription>
+              <CardDescription>Sets you&apos;re currently working on</CardDescription>
             </CardHeader>
             <CardContent className="space-y-3 max-h-[600px] overflow-y-auto">
               {getActiveSessions().length > 0 ? (

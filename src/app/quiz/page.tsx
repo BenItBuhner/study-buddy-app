@@ -1,27 +1,30 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import { useStudySession } from '@/contexts/StudySessionContext';
 import QuestionDisplay from '@/components/QuestionDisplay';
-import LatexRenderer from '@/components/LatexRenderer';
+import { StudySet } from '@/types/studyTypes';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
-import { ArrowLeft, ArrowRight, CheckCircle, XCircle, Home, Award, CircleCheck, PlusCircle } from 'lucide-react';
-import Link from 'next/link';
-import { useRouter } from 'next/navigation';
+import { Progress } from '@/components/ui/progress';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
+import { ArrowLeft, ArrowRight, RotateCcw, Home, Award } from 'lucide-react';
+import { ThemeToggle } from '@/components/ThemeToggle';
+import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
+import { cn } from "@/lib/utils";
 import { motion } from 'framer-motion';
 import confetti from 'canvas-confetti';
-import { ThemeToggle } from '@/components/ThemeToggle';
+import LatexRenderer from '@/components/LatexRenderer';
+import { CheckCircle, XCircle } from 'lucide-react';
 
 export default function QuizPage() {
   const router = useRouter();
   const {
     studySet,
     currentQuestionIndex,
-    loadStudySet,
-    submitAnswer,
     nextQuestion,
     previousQuestion,
+    submitAnswer,
     resetSession,
     goToQuestion
   } = useStudySession();

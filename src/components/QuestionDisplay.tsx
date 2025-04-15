@@ -43,7 +43,6 @@ export default function QuestionDisplay({ question, onAnswerSubmit, questionInde
   const [showConfetti, setShowConfetti] = useState(false);
   const [showFeedback, setShowFeedback] = useState(false);
   const [hasSubmitted, setHasSubmitted] = useState(false);
-  const [shakeKey, setShakeKey] = useState(0);
   
   // Reset input value when question changes
   useEffect(() => {
@@ -154,9 +153,6 @@ export default function QuestionDisplay({ question, onAnswerSubmit, questionInde
     return <LatexRenderer content={text} />;
   };
 
-  // Determine if the user has submitted an answer
-  const hasSubmittedAnswer = question.answer !== null;
-
   // Handle answer submission
   const handleSubmit = () => {
     if (!inputValue) return;
@@ -164,13 +160,10 @@ export default function QuestionDisplay({ question, onAnswerSubmit, questionInde
     onAnswerSubmit(question.id, inputValue);
     setHasSubmitted(true);
     
-    const isCorrect = question.isUserCorrect !== null ? question.isUserCorrect : checkAnswer(question, inputValue);
+    const isActuallyCorrect = checkAnswer(question, inputValue);
 
-    if (isCorrect) {
+    if (isActuallyCorrect) {
       setShowConfetti(true);
-    } else {
-      // Trigger shake animation for incorrect answer
-      setShakeKey(prev => prev + 1);
     }
   };
 
@@ -297,18 +290,19 @@ export default function QuestionDisplay({ question, onAnswerSubmit, questionInde
             // Multiple Choice Options
             <div className="space-y-3">
               {question.options.map((option) => {
-                const isSelected = hasSubmitted && inputValue === option.id;
-                const isCorrect = option.isCorrect;
-                const isIncorrect = isSelected && question.isUserCorrect === false;
+                const isSelected = inputValue === option.id;
+                const showResult = hasSubmitted && showFeedback;
+                const isActuallyCorrect = option.isCorrect;
+                const wasUserCorrect = question.isUserCorrect === true;
                 
                 let optionClass = "w-full text-left p-4 rounded-lg border-2 transition-colors";
                 
-                if (hasSubmitted && showFeedback) {
-                  if (isSelected && question.isUserCorrect) {
+                if (showResult) {
+                  if (isSelected && wasUserCorrect) {
                     optionClass += " bg-[#1ed760]/10 border-[#1ed760]";
-                  } else if (isSelected && !question.isUserCorrect) {
+                  } else if (isSelected && !wasUserCorrect) {
                     optionClass += " bg-[#ff3333]/10 border-[#ff3333]";
-                  } else if (option.isCorrect) {
+                  } else if (isActuallyCorrect) {
                     optionClass += " bg-[#1ed760]/5 border-[#1ed760]/50";
                   } else {
                     optionClass += " bg-accent/10 border-accent/20";
@@ -337,15 +331,15 @@ export default function QuestionDisplay({ question, onAnswerSubmit, questionInde
                         </div>
                       </div>
                       
-                      {hasSubmitted && showFeedback && (
+                      {showResult && (
                         <div className="flex-shrink-0 ml-2">
-                          {isSelected && question.isUserCorrect && (
+                          {isSelected && wasUserCorrect && (
                             <Check className="h-5 w-5 text-[#1ed760]" />
                           )}
-                          {isSelected && !question.isUserCorrect && (
+                          {isSelected && !wasUserCorrect && (
                             <X className="h-5 w-5 text-[#ff3333]" />
                           )}
-                          {!isSelected && option.isCorrect && (
+                          {!isSelected && isActuallyCorrect && (
                             <Check className="h-5 w-5 text-[#1ed760]/50" />
                           )}
                         </div>
@@ -388,7 +382,7 @@ export default function QuestionDisplay({ question, onAnswerSubmit, questionInde
                 </div>
               </div>
               
-              {hasSubmitted && (
+              {!hasSubmitted && (
                 <motion.div whileHover={{ scale: 1.01 }} whileTap={{ scale: 0.99 }}>
                   <Button type="submit" className="w-full">
                     Submit Answer

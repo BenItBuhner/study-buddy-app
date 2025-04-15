@@ -35,19 +35,20 @@ export default function JsonInputArea({ onJsonLoaded }: JsonInputAreaProps) {
 
     const reader = new FileReader();
     
-    reader.onload = (e) => {
+    reader.onload = (event: any) => {
       try {
-        const content = e.target?.result as string;
+        const content = event.target?.result as string;
         setJsonInput(content);
         setLoading(false);
-      } catch (err) {
-        setError('Failed to read the file.');
+      } catch (err: any) {
+        console.error("Error parsing or validating JSON:", err);
+        setError(`Invalid JSON file: ${err.message}`);
         setLoading(false);
       }
     };
     
     reader.onerror = () => {
-      setError('Failed to read the file.');
+      setError("Failed to read the file.");
       setLoading(false);
     };
     
