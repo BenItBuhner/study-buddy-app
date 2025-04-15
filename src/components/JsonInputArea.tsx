@@ -223,8 +223,8 @@ Please create a study set with as many questions as needed for the user to study
       await navigator.clipboard.writeText(llmPromptTemplate);
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
-    } catch (_err) {
-      console.error('Failed to copy text: ', _err);
+    } catch (error) {
+      console.error('Failed to copy text: ', error);
     }
   };
 
@@ -285,7 +285,7 @@ Please create a study set with as many questions as needed for the user to study
       let preprocessedJson = preprocessJson(jsonInput);
       
       // Handle non-JSON or structured text by attempting cleaning
-      let parsedData: any;
+      let parsedData: Record<string, unknown>;
       
       try {
         // First attempt to parse the preprocessed JSON
@@ -304,7 +304,7 @@ Please create a study set with as many questions as needed for the user to study
             preprocessedJson = jsonInput.replace(/\\/g, '\\\\');
             parsedData = JSON.parse(preprocessedJson);
             setPreprocessingInfo("Applied aggressive LaTeX escape sequence fixing");
-          } catch (_secondError: unknown) {
+          } catch (_) {
             // If that also fails, provide detailed error
             const positionMatch = errorMessage.match(/position (\d+)/);
             const errorPosition = positionMatch ? parseInt(positionMatch[1]) : undefined;
@@ -391,8 +391,10 @@ Please create a study set with as many questions as needed for the user to study
       // Default values for missing fields
       if (!parsedData.settings) {
         parsedData.settings = { persistSession: true };
-      } else if (parsedData.settings.persistSession === undefined) {
-        parsedData.settings.persistSession = true;
+      } else if (typeof parsedData.settings === 'object' && parsedData.settings !== null) {
+        // Ensure settings is an object with persistSession property
+        (parsedData.settings as Record<string, unknown>).persistSession = 
+          (parsedData.settings as Record<string, unknown>).persistSession ?? true;
       }
 
       // Initialize answer and isUserCorrect fields
@@ -403,7 +405,7 @@ Please create a study set with as many questions as needed for the user to study
       }));
 
       // Success - pass the data to parent
-      onJsonLoaded(parsedData);
+      onJsonLoaded(parsedData as unknown as StudySet);
       setError(null);
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Unknown error';

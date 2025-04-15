@@ -83,7 +83,7 @@ export default function QuestionDisplay({ question, onAnswerSubmit, questionInde
       // Set showFeedback based on user interaction - ONLY if the user has actually submitted an answer
       setShowFeedback(question.answer !== null && question.isUserCorrect !== null);
     }
-  }, [question]);
+  }, [question, showConfetti]);
   
   // Reset confetti state when question changes
   useEffect(() => {
@@ -97,7 +97,7 @@ export default function QuestionDisplay({ question, onAnswerSubmit, questionInde
       timeoutId = setTimeout(() => setShowConfetti(false), 3000);
     }
     return () => clearTimeout(timeoutId);
-  }, [showConfetti]); // Fixed missing dependency
+  }, [showConfetti]);
   
   // If no question is available, show a placeholder
   if (!question) {
