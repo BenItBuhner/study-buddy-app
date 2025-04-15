@@ -94,10 +94,10 @@ export default function QuestionDisplay({ question, onAnswerSubmit, questionInde
   useEffect(() => {
     let timeoutId: NodeJS.Timeout;
     if (showConfetti) {
-      timeoutId = setTimeout(() => setShowConfetti(false), 3000); // Hide after 3 seconds
+      timeoutId = setTimeout(() => setShowConfetti(false), 3000);
     }
     return () => clearTimeout(timeoutId);
-  }, [showConfetti]); // Add missing dependency
+  }, [showConfetti]); // Added showConfetti dependency
   
   // If no question is available, show a placeholder
   if (!question) {
