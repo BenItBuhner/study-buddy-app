@@ -40,7 +40,6 @@ const checkAnswer = (question: Question, userAnswer: string | null): boolean => 
 export default function QuestionDisplay({ question, onAnswerSubmit, questionIndex }: QuestionDisplayProps) {
   const [inputValue, setInputValue] = useState("");
   const [showConfetti, setShowConfetti] = useState(false);
-  const [showFeedback, setShowFeedback] = useState(false);
   const [hasSubmitted, setHasSubmitted] = useState(false);
   const [showAnswerDirectly, setShowAnswerDirectly] = useState(false); // State for Give Up
   
@@ -82,9 +81,6 @@ export default function QuestionDisplay({ question, onAnswerSubmit, questionInde
           });
         }, 300);
       }
-      
-      // Update feedback visibility based on whether an answer exists in the prop
-      setShowFeedback(question.answer !== null && question.isUserCorrect !== null);
     }
   }, [question, showConfetti]); // Keep showConfetti dependency for its logic
 
@@ -169,14 +165,12 @@ export default function QuestionDisplay({ question, onAnswerSubmit, questionInde
     setShowAnswerDirectly(true); // Trigger answer reveal locally
     setHasSubmitted(true);       // Lock input
     onAnswerSubmit(question.id, null); // Submit null (counts as incorrect)
-    setShowFeedback(true); // Ensure feedback area shows
   };
 
   // Handle Try Again button click
   const handleTryAgain = () => {
     setInputValue("");          // Clear input
     setHasSubmitted(false);      // Allow input again
-    setShowFeedback(false);      // Hide previous feedback
     setShowAnswerDirectly(false); // Hide revealed answer if Give Up was clicked before Try Again
   };
 
