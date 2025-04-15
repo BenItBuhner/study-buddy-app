@@ -223,8 +223,8 @@ Please create a study set with as many questions as needed for the user to study
       await navigator.clipboard.writeText(llmPromptTemplate);
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
-    } catch (err) {
-      console.error('Failed to copy text: ', err);
+    } catch (_err) {
+      console.error('Failed to copy text: ', _err);
     }
   };
 
@@ -304,7 +304,7 @@ Please create a study set with as many questions as needed for the user to study
             preprocessedJson = jsonInput.replace(/\\/g, '\\\\');
             parsedData = JSON.parse(preprocessedJson);
             setPreprocessingInfo("Applied aggressive LaTeX escape sequence fixing");
-          } catch (secondError: unknown) {
+          } catch (_secondError: unknown) {
             // If that also fails, provide detailed error
             const positionMatch = errorMessage.match(/position (\d+)/);
             const errorPosition = positionMatch ? parseInt(positionMatch[1]) : undefined;

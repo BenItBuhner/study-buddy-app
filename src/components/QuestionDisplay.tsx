@@ -97,7 +97,7 @@ export default function QuestionDisplay({ question, onAnswerSubmit, questionInde
       timeoutId = setTimeout(() => setShowConfetti(false), 3000);
     }
     return () => clearTimeout(timeoutId);
-  }, [showConfetti]); // Added showConfetti dependency
+  }, [showConfetti]); // Fixed missing dependency
   
   // If no question is available, show a placeholder
   if (!question) {
