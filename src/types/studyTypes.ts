@@ -40,9 +40,12 @@ export interface StudySettings {
 
 // Complete study set
 export interface StudySet {
+  id: string;
   title: string;
   settings: StudySettings;
   questions: Question[];
+  createdAt?: number;
+  lastAccessed?: number;
 }
 
 // State for the study session

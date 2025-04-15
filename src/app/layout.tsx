@@ -3,6 +3,8 @@ import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import { StudySessionProvider } from "@/contexts/StudySessionContext";
 import { SettingsProvider } from "@/contexts/SettingsContext";
+import { AIGenerationProvider } from "@/contexts/AIGenerationContext";
+import { ThemeProvider } from "@/components/ThemeProvider";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -15,7 +17,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "StudyBuddy Deluxe",
+  title: "StudyBuddy",
   description: "A local studying application for dynamic question loading",
 };
 
@@ -25,24 +27,30 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en">
+    <html lang="en" suppressHydrationWarning>
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
-        <SettingsProvider>
-          <StudySessionProvider>
-            <div className="min-h-screen flex flex-col">
-              <header className="bg-blue-600 text-white py-4 px-6 shadow-md">
-                <div className="container mx-auto">
-                  <h1 className="text-2xl font-bold">StudyBuddy Deluxe</h1>
+        <ThemeProvider
+          attribute="class"
+          defaultTheme="system"
+          enableSystem
+          disableTransitionOnChange={false}
+        >
+          <SettingsProvider>
+            <StudySessionProvider>
+              <AIGenerationProvider>
+                <div className="min-h-screen flex flex-col">
+                  <main className="flex-grow">
+                    <div className="container mx-auto px-4 py-6 sm:px-6 lg:px-8">
+                      {children}
+                    </div>
+                  </main>
                 </div>
-              </header>
-              <main className="flex-grow container mx-auto px-4 py-8">
-                {children}
-              </main>
-            </div>
-          </StudySessionProvider>
-        </SettingsProvider>
+              </AIGenerationProvider>
+            </StudySessionProvider>
+          </SettingsProvider>
+        </ThemeProvider>
       </body>
     </html>
   );

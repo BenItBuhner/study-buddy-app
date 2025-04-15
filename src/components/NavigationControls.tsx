@@ -1,6 +1,8 @@
 'use client';
 
 import React from 'react';
+import { Button } from '@/components/ui/button';
+import { ArrowLeft, ArrowRight } from 'lucide-react';
 
 interface NavigationControlsProps {
   currentIndex: number;
@@ -20,37 +22,30 @@ export default function NavigationControls({
   hasNext,
 }: NavigationControlsProps) {
   return (
-    <div className="flex items-center justify-between mt-6">
+    <div className="flex items-center justify-between w-full">
       {/* Progress Indicator */}
-      <div className="text-sm text-gray-500">
+      <div className="text-sm text-muted-foreground">
         Question {currentIndex + 1} of {totalQuestions}
       </div>
       
       {/* Navigation Buttons */}
       <div className="flex space-x-2">
-        <button
+        <Button
+          variant="outline"
           onClick={onPrevious}
           disabled={!hasPrevious}
-          className={`px-4 py-2 rounded-md ${
-            hasPrevious
-              ? 'bg-blue-100 text-blue-700 hover:bg-blue-200'
-              : 'bg-gray-100 text-gray-400 cursor-not-allowed'
-          }`}
         >
+          <ArrowLeft className="h-4 w-4 mr-2" />
           Previous
-        </button>
+        </Button>
         
-        <button
+        <Button
           onClick={onNext}
           disabled={!hasNext}
-          className={`px-4 py-2 rounded-md ${
-            hasNext
-              ? 'bg-blue-600 text-white hover:bg-blue-700'
-              : 'bg-gray-300 text-gray-500 cursor-not-allowed'
-          }`}
         >
           Next
-        </button>
+          <ArrowRight className="h-4 w-4 ml-2" />
+        </Button>
       </div>
     </div>
   );

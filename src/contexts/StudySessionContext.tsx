@@ -5,8 +5,12 @@ import { Question, StudySet, StudySessionState } from '@/types/studyTypes';
 import { 
   saveSessionToCookie, 
   loadSessionFromCookie, 
-  clearSessionCookie 
+  getCurrentSession,
+  removeStudySet,
+  loadAllSessions,
+  clearAllSessionCookies
 } from '@/utils/cookieUtils';
+import { v4 as uuidv4 } from 'uuid';
 
 // Default state
 const defaultState: StudySessionState = {
@@ -23,6 +27,10 @@ interface StudySessionContextType extends StudySessionState {
   previousQuestion: () => void;
   submitAnswer: (questionId: string, answer: string) => void;
   resetSession: () => void;
+  getAllSavedSessions: () => StudySet[];
+  deleteStudySet: (id: string) => void;
+  resetStudySetProgress: (id: string) => void;
+  goToQuestion: (index: number) => void;
 }
 
 // Create context
@@ -34,7 +42,7 @@ export function StudySessionProvider({ children }: { children: ReactNode }) {
 
   // Load session from cookie on initial render
   useEffect(() => {
-    const savedSession = loadSessionFromCookie();
+    const savedSession = getCurrentSession();
     if (savedSession) {
       setState({
         ...defaultState,
@@ -48,16 +56,58 @@ export function StudySessionProvider({ children }: { children: ReactNode }) {
 
   // Load a study set
   const loadStudySet = (studySet: StudySet | null) => {
+    // If studySet exists, ensure all questions have answer and isUserCorrect initialized as null
+    if (studySet) {
+      // Generate ID if not present
+      if (!studySet.id) {
+        studySet = {
+          ...studySet,
+          id: uuidv4(),
+          createdAt: Date.now(),
+          lastAccessed: Date.now()
+        };
+      } else {
+        studySet = {
+          ...studySet,
+          lastAccessed: Date.now()
+        };
+      }
+
+      // Ensure settings exists and has persistSession property
+      if (!studySet.settings) {
+        studySet = {
+          ...studySet,
+          settings: { persistSession: true }
+        };
+      } else if (studySet.settings.persistSession === undefined) {
+        studySet = {
+          ...studySet,
+          settings: { 
+            ...studySet.settings,
+            persistSession: true 
+          }
+        };
+      }
+
+      // Process questions
+      studySet = {
+        ...studySet,
+        questions: studySet.questions.map(question => ({
+          ...question,
+          answer: question.answer ?? null,
+          isUserCorrect: question.isUserCorrect ?? null
+        }))
+      };
+    }
+
     setState({
       ...defaultState,
       studySet,
     });
 
-    // Handle cookie based on the new state
+    // Always save to cookie if study set exists and persistSession is true
     if (studySet && studySet.settings.persistSession) {
       saveSessionToCookie(studySet);
-    } else {
-      clearSessionCookie();
     }
   };
 
@@ -80,6 +130,17 @@ export function StudySessionProvider({ children }: { children: ReactNode }) {
       setState({
         ...state,
         currentQuestionIndex: state.currentQuestionIndex - 1,
+      });
+    }
+  };
+
+  // Navigate directly to a specific question index
+  const goToQuestion = (index: number) => {
+    if (!state.studySet) return;
+    if (index >= 0 && index < state.studySet.questions.length) {
+      setState({
+        ...state,
+        currentQuestionIndex: index,
       });
     }
   };
@@ -116,6 +177,7 @@ export function StudySessionProvider({ children }: { children: ReactNode }) {
     const updatedStudySet = {
       ...state.studySet,
       questions: updatedQuestions,
+      lastAccessed: Date.now()
     };
 
     // Update state
@@ -133,7 +195,54 @@ export function StudySessionProvider({ children }: { children: ReactNode }) {
   // Reset the session
   const resetSession = () => {
     setState(defaultState);
-    clearSessionCookie();
+  };
+
+  // Get all saved sessions
+  const getAllSavedSessions = (): StudySet[] => {
+    return loadAllSessions();
+  };
+
+  // Delete a study set
+  const deleteStudySet = (id: string) => {
+    removeStudySet(id);
+    
+    // If the current study set is being deleted, reset the session
+    if (state.studySet?.id === id) {
+      resetSession();
+    }
+  };
+
+  // Reset progress of a study set without deleting it
+  const resetStudySetProgress = (id: string) => {
+    // Get the study set
+    const studySet = loadSessionFromCookie(id);
+    
+    if (studySet) {
+      // Reset all questions' progress
+      const resetQuestions = studySet.questions.map(question => ({
+        ...question,
+        answer: null,
+        isUserCorrect: null
+      }));
+      
+      // Create updated study set with reset progress
+      const updatedStudySet = {
+        ...studySet,
+        questions: resetQuestions,
+        lastAccessed: Date.now()
+      };
+      
+      // Save back to storage
+      saveSessionToCookie(updatedStudySet);
+      
+      // If this is the currently loaded study set, update state
+      if (state.studySet?.id === id) {
+        setState({
+          ...state,
+          studySet: updatedStudySet
+        });
+      }
+    }
   };
 
   // Context value
@@ -144,6 +253,10 @@ export function StudySessionProvider({ children }: { children: ReactNode }) {
     previousQuestion,
     submitAnswer,
     resetSession,
+    getAllSavedSessions,
+    deleteStudySet,
+    resetStudySetProgress,
+    goToQuestion,
   };
 
   return (
