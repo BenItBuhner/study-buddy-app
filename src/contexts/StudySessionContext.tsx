@@ -30,6 +30,7 @@ interface StudySessionContextType {
   deleteStudySet: (id: string) => void;
   resetStudySetProgress: (id: string) => void;
   goToQuestion: (index: number) => void;
+  saveCurrentSession: () => boolean;
 }
 
 // Create the context
@@ -78,6 +79,13 @@ export function StudySessionProvider({ children }: { children: ReactNode }) {
   const nextQuestion = () => {
     if (studySet && currentQuestionIndex < studySet.questions.length - 1) {
       setCurrentQuestionIndex(prevIndex => prevIndex + 1);
+      
+      // Save the session after navigation
+      const updatedSet = { 
+        ...studySet, 
+        lastAccessed: Date.now() 
+      };
+      saveSessionToCookie(updatedSet);
     }
   };
 
@@ -85,6 +93,15 @@ export function StudySessionProvider({ children }: { children: ReactNode }) {
   const previousQuestion = () => {
     if (currentQuestionIndex > 0) {
       setCurrentQuestionIndex(prevIndex => prevIndex - 1);
+      
+      // Save the session after navigation
+      if (studySet) {
+        const updatedSet = { 
+          ...studySet, 
+          lastAccessed: Date.now() 
+        };
+        saveSessionToCookie(updatedSet);
+      }
     }
   };
 
@@ -137,6 +154,20 @@ export function StudySessionProvider({ children }: { children: ReactNode }) {
     };
     setStudySet(updatedStudySet);
     saveSessionToCookie(updatedStudySet);
+  };
+
+  // Helper function to explicitly save the current session
+  const saveCurrentSession = () => {
+    if (studySet) {
+      // Update last accessed time and save
+      const updatedSet = {
+        ...studySet,
+        lastAccessed: Date.now()
+      };
+      saveSessionToCookie(updatedSet);
+      return true;
+    }
+    return false;
   };
 
   // Reset the current session
@@ -206,6 +237,13 @@ export function StudySessionProvider({ children }: { children: ReactNode }) {
   const goToQuestion = (index: number) => {
     if (studySet && index >= 0 && index < studySet.questions.length) {
       setCurrentQuestionIndex(index);
+      
+      // Save the session after navigation
+      const updatedSet = { 
+        ...studySet, 
+        lastAccessed: Date.now() 
+      };
+      saveSessionToCookie(updatedSet);
     }
   };
 
@@ -222,6 +260,7 @@ export function StudySessionProvider({ children }: { children: ReactNode }) {
     deleteStudySet,
     resetStudySetProgress: resetStudySetProgressLocal,
     goToQuestion,
+    saveCurrentSession,
   };
 
   return (

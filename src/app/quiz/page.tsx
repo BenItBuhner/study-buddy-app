@@ -22,7 +22,8 @@ export default function QuizPage() {
     previousQuestion,
     submitAnswer,
     resetSession,
-    goToQuestion
+    goToQuestion,
+    saveCurrentSession
   } = useStudySession();
   
   const [showCompletionScreen, setShowCompletionScreen] = useState(false);
@@ -50,6 +51,39 @@ export default function QuizPage() {
       }
     }
   }, [studySet]);
+  
+  // Add a beforeunload event listener to save progress when navigating away
+  useEffect(() => {
+    // Save session when component unmounts (navigation)
+    return () => {
+      if (studySet) {
+        console.log("Saving session before unmount/navigation");
+        saveCurrentSession();
+      }
+    };
+  }, [studySet, saveCurrentSession]);
+  
+  // Autosave progress periodically (every 30 seconds)
+  useEffect(() => {
+    if (!studySet) return;
+    
+    // Set up autosave interval
+    const autosaveInterval = setInterval(() => {
+      console.log("Autosaving session...");
+      saveCurrentSession();
+    }, 30000); // Save every 30 seconds
+    
+    // Clean up on unmount
+    return () => clearInterval(autosaveInterval);
+  }, [studySet, saveCurrentSession]);
+  
+  // Handle back navigation without resetting progress
+  const handleBackToHome = () => {
+    // Save progress before navigation
+    saveCurrentSession();
+    // Navigate back to home
+    router.push('/');
+  };
   
   // Handle resetting the session and redirecting to home
   const handleResetSession = () => {
@@ -80,7 +114,7 @@ export default function QuizPage() {
           <Button 
             variant="ghost" 
             size="icon" 
-            onClick={handleResetSession}
+            onClick={handleBackToHome}
             className="text-primary sm:hidden" // Show only icon on small screens
           >
             <ArrowLeft className="h-5 w-5" />
@@ -88,7 +122,7 @@ export default function QuizPage() {
           <Button 
             variant="ghost" 
             size="sm" 
-            onClick={handleResetSession}
+            onClick={handleBackToHome}
             className="text-sm text-primary hidden sm:flex items-center" // Show text on larger screens
           >
             <ArrowLeft className="h-4 w-4 mr-1" /> Back to Home
@@ -199,7 +233,7 @@ export default function QuizPage() {
         <Button 
           variant="ghost" 
           size="icon" // Use icon size for consistency
-          onClick={handleResetSession}
+          onClick={handleBackToHome}
           className="text-primary sm:hidden" // Icon only on mobile
         >
           <ArrowLeft className="h-5 w-5" /> 
@@ -207,7 +241,7 @@ export default function QuizPage() {
         <Button 
           variant="ghost" 
           size="sm" 
-          onClick={handleResetSession}
+          onClick={handleBackToHome}
           className="text-sm text-primary hidden sm:flex items-center" // Text + icon on larger
         >
           <ArrowLeft className="h-4 w-4 mr-1" /> Back to Home

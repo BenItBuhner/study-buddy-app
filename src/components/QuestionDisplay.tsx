@@ -140,7 +140,10 @@ export default function QuestionDisplay({ question, onAnswerSubmit, questionInde
   };
 
   // Handle text input submission
-  const handleSubmit = () => {
+  const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
+    // Prevent default form submission behavior
+    e.preventDefault();
+    
     if (!inputValue) return;
     
     onAnswerSubmit(question.id, inputValue);
