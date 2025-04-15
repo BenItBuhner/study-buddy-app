@@ -15,7 +15,8 @@ import {
   BookOpen,
   Clock,
   AlertCircle,
-  Sparkles
+  Sparkles,
+  Download
 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { ThemeToggle } from '@/components/ThemeToggle';
@@ -30,6 +31,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import { exportStudySet } from '@/utils/exportUtils';
 
 export default function Home() {
   const router = useRouter();
@@ -115,6 +117,24 @@ export default function Home() {
     setResetDialogOpen(true);
   };
 
+  // Format date for display
+  const formatDate = (timestamp?: number) => {
+    if (!timestamp) return 'Unknown';
+    const date = new Date(timestamp);
+    return date.toLocaleDateString('en-US', { 
+      month: 'short', 
+      day: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit'
+    });
+  };
+
+  // Handle exporting a study set
+  const handleExportStudySet = (e: React.MouseEvent, session: StudySet, withProgress: boolean = false) => {
+    e.stopPropagation();
+    exportStudySet(session, withProgress);
+  };
+
   // Confirm deleting a study set
   const confirmDeleteStudySet = () => {
     if (studySetToDelete) {
@@ -133,31 +153,6 @@ export default function Home() {
       setResetDialogOpen(false);
       setStudySetToReset(null);
     }
-  };
-
-  /* // Unused sample quiz loading function
-  const loadSampleQuiz = (file: string) => {
-    fetch(`/${file}`)
-      .then(res => res.json())
-      .then(data => {
-        // ... (implementation)
-      })
-      .catch(err => {
-        console.error(`Error loading sample quiz ${file}:`, err);
-      });
-  };
-  */
-
-  // Format date for display
-  const formatDate = (timestamp?: number) => {
-    if (!timestamp) return 'Unknown';
-    const date = new Date(timestamp);
-    return date.toLocaleDateString('en-US', { 
-      month: 'short', 
-      day: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit'
-    });
   };
 
   return (
@@ -360,19 +355,30 @@ export default function Home() {
                                 </span>
                               )}
                               
-                              {/* Delete button - top right */}
-                              <Button
-                                variant="ghost"
-                                size="icon"
-                                className="absolute top-2 right-2 h-6 w-6 opacity-0 group-hover:opacity-100 text-muted-foreground hover:text-destructive"
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  handleDeleteStudySet(session.id);
-                                }}
-                                title="Delete set"
-                              >
-                                <Trash2 className="h-4 w-4" />
-                              </Button>
+                              {/* Control buttons - top right */}
+                              <div className="absolute top-2 right-2 flex space-x-1">
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  className="h-6 w-6 opacity-0 group-hover:opacity-100 text-muted-foreground hover:text-primary"
+                                  onClick={(e) => handleExportStudySet(e, session, false)}
+                                  title="Export set"
+                                >
+                                  <Download className="h-4 w-4" />
+                                </Button>
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  className="h-6 w-6 opacity-0 group-hover:opacity-100 text-muted-foreground hover:text-destructive"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    handleDeleteStudySet(session.id);
+                                  }}
+                                  title="Delete set"
+                                >
+                                  <Trash2 className="h-4 w-4" />
+                                </Button>
+                              </div>
                             </CardContent>
                           </Card>
                         );

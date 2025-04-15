@@ -48,6 +48,9 @@ export default function QuestionDisplay({ question, onAnswerSubmit, questionInde
     if (question) {
       setInputValue(question.answer || '');
       
+      // Reset hasSubmitted state for new questions that haven't been answered yet
+      setHasSubmitted(question.answer !== null);
+      
       // If the question was just answered correctly, show celebration
       if (question.isUserCorrect === true && !showConfetti) {
         setShowConfetti(true);
@@ -122,6 +125,18 @@ export default function QuestionDisplay({ question, onAnswerSubmit, questionInde
   const handleMultipleChoiceSelect = (optionId: string) => {
     if (hasSubmitted) return; // Don't allow changes after submission
     setInputValue(optionId);
+    
+    // Auto-submit the answer for multiple-choice questions
+    if (question && question.type === 'multiple-choice') {
+      console.log("Auto-submitting multiple-choice answer:", optionId);
+      onAnswerSubmit(question.id, optionId);
+      setHasSubmitted(true);
+      
+      const isActuallyCorrect = checkAnswer(question, optionId);
+      if (isActuallyCorrect) {
+        setShowConfetti(true);
+      }
+    }
   };
 
   // Handle text input submission

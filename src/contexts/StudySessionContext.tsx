@@ -97,8 +97,27 @@ export function StudySessionProvider({ children }: { children: ReactNode }) {
         let isUserCorrect = false;
         if (answer !== null) {
           if (q.type === 'multiple-choice') {
-            const correctOption = q.options.find(opt => opt.isCorrect);
-            isUserCorrect = answer === correctOption?.id;
+            // Debug logging for multiple-choice questions
+            console.log('Multiple choice question:', q.id);
+            console.log('User selected option:', answer);
+            console.log('Available options:', q.options);
+            
+            // Log each option with its properties to check isCorrect
+            q.options.forEach((opt, index) => {
+              console.log(`Option ${index} (${opt.id}):`, {
+                text: opt.text,
+                isCorrect: opt.isCorrect,
+                typeOfIsCorrect: typeof opt.isCorrect
+              });
+            });
+            
+            // Find correct option and use explicit boolean check
+            const correctOption = q.options.find(opt => opt.isCorrect === true);
+            console.log('Correct option found:', correctOption);
+            
+            // Use explicit boolean check and fallback if no correct option found
+            isUserCorrect = (correctOption && answer === correctOption.id) || false;
+            console.log('Is user correct:', isUserCorrect);
           } else if (q.type === 'text-input') {
             const normalizedUserAnswer = answer.trim().toLowerCase();
             isUserCorrect = q.correctAnswers.some(correct => 
