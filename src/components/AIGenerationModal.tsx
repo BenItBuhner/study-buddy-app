@@ -797,6 +797,16 @@ export default function AIGenerationModal({ isOpen, onClose, onStudySetGenerated
             </DialogFooter>
           </form>
         </Form>
+
+        {/* Add an extra div at the bottom that always stays at the end of content */}
+        <div id="stream-end-anchor" ref={(el: HTMLDivElement | null) => {
+          if (el && autoScrollEnabled) {
+            // Ensure this element is visible when auto-scroll is enabled
+            setTimeout(() => {
+              el.scrollIntoView({ behavior: 'smooth', block: 'end' });
+            }, 50);
+          }
+        }}></div>
       </DialogContent>
     </Dialog>
   );

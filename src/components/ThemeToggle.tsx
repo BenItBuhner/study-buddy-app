@@ -29,7 +29,7 @@ const themeColors = [
 ];
 
 export function ThemeToggle() {
-  const { theme, setTheme } = useTheme();
+  const { setTheme } = useTheme();
   const [mounted, setMounted] = useState(false);
   const [themeColor, setThemeColor] = useState("default");
   

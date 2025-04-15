@@ -1,7 +1,7 @@
 'use client';
 
 import React, { createContext, useState, useContext, ReactNode } from 'react';
-import { StudySet } from '@/types/studyTypes';
+import { StudySet, Question } from '@/types/studyTypes';
 import AIGenerationModal from '@/components/AIGenerationModal';
 import { useStudySession } from './StudySessionContext';
 import { useRouter } from 'next/navigation';
@@ -271,7 +271,7 @@ ${prompt}
           persistSession: true,
         },
         // Initialize answer and isUserCorrect fields
-        questions: parsedData.questions.map((q: any) => ({
+        questions: parsedData.questions.map((q: Partial<Question>) => ({
           ...q,
           answer: null,
           isUserCorrect: null,
@@ -473,7 +473,7 @@ ${prompt}
           persistSession: true,
         },
         // Initialize answer and isUserCorrect fields
-        questions: parsedData.questions.map((q: any) => ({
+        questions: parsedData.questions.map((q: Partial<Question>) => ({
           ...q,
           answer: null,
           isUserCorrect: null,

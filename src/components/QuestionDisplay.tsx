@@ -19,11 +19,31 @@ interface QuestionDisplayProps {
   questionIndex?: number; // Optional index for correct sequential numbering
 }
 
+// Helper function to check if the answer is correct
+const checkAnswer = (question: Question, userAnswer: string | null): boolean => {
+  if (userAnswer === null) return false;
+  
+  if (question.type === 'multiple-choice') {
+    const correctOption = question.options.find(opt => opt.isCorrect);
+    return userAnswer === correctOption?.id;
+  } else if (question.type === 'text-input') {
+    // Case-insensitive and trim whitespace for text inputs
+    const normalizedUserAnswer = userAnswer.trim().toLowerCase();
+    return question.correctAnswers.some(correct => 
+      correct.trim().toLowerCase() === normalizedUserAnswer
+    );
+  }
+  
+  return false;
+};
+
 export default function QuestionDisplay({ question, onAnswerSubmit, questionIndex }: QuestionDisplayProps) {
   const [inputValue, setInputValue] = useState("");
   const [isAnimating, setIsAnimating] = useState(false);
   const [showConfetti, setShowConfetti] = useState(false);
   const [showFeedback, setShowFeedback] = useState(false);
+  const [hasSubmitted, setHasSubmitted] = useState(false);
+  const [shakeKey, setShakeKey] = useState(0);
   
   // Reset input value when question changes
   useEffect(() => {
@@ -71,6 +91,15 @@ export default function QuestionDisplay({ question, onAnswerSubmit, questionInde
   useEffect(() => {
     setShowConfetti(false);
   }, [question?.id]);
+
+  // Effect for confetti
+  useEffect(() => {
+    let timeoutId: NodeJS.Timeout;
+    if (showConfetti) {
+      timeoutId = setTimeout(() => setShowConfetti(false), 3000); // Hide after 3 seconds
+    }
+    return () => clearTimeout(timeoutId);
+  }, [showConfetti]); // Added showConfetti dependency
   
   // If no question is available, show a placeholder
   if (!question) {
@@ -93,20 +122,15 @@ export default function QuestionDisplay({ question, onAnswerSubmit, questionInde
 
   // Handle multiple choice selection
   const handleMultipleChoiceSelect = (optionId: string) => {
-    // Only allow selection if answer not already submitted
-    if (question.isUserCorrect === null) {
-      setIsAnimating(true);
-      setTimeout(() => {
-        onAnswerSubmit(question.id, optionId);
-        setIsAnimating(false);
-      }, 300);
-    }
+    if (hasSubmitted) return; // Don't allow changes after submission
+    setInputValue(optionId);
   };
 
   // Handle text input submission
   const handleTextSubmit = (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
-    if (question.isUserCorrect === null && inputValue.trim()) {
+    if (hasSubmitted) return; // Don't allow submission after already submitted
+    if (inputValue.trim()) {
       setIsAnimating(true);
       setTimeout(() => {
         onAnswerSubmit(question.id, inputValue);
@@ -116,6 +140,7 @@ export default function QuestionDisplay({ question, onAnswerSubmit, questionInde
   };
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (hasSubmitted) return; // Don't allow changes after submission
     setInputValue(e.target.value);
   };
 
@@ -130,7 +155,115 @@ export default function QuestionDisplay({ question, onAnswerSubmit, questionInde
   };
 
   // Determine if the user has submitted an answer
-  const hasSubmitted = question.answer !== null;
+  const hasSubmittedAnswer = question.answer !== null;
+
+  // Handle answer submission
+  const handleSubmit = () => {
+    if (!inputValue) return;
+    
+    onAnswerSubmit(question.id, inputValue);
+    setHasSubmitted(true);
+    
+    const isCorrect = question.isUserCorrect !== null ? question.isUserCorrect : checkAnswer(question, inputValue);
+
+    if (isCorrect) {
+      setShowConfetti(true);
+    } else {
+      // Trigger shake animation for incorrect answer
+      setShakeKey(prev => prev + 1);
+    }
+  };
+
+  // Render feedback (correct/incorrect)
+  const renderFeedback = () => {
+    if (!hasSubmitted || question.isUserCorrect === null) return null;
+
+    return (
+      <CardFooter className="border-t bg-card px-6 py-4">
+        <Alert 
+          variant={question.isUserCorrect ? "default" : "destructive"} 
+          className={`w-full border-l-4 shadow-sm ${
+            question.isUserCorrect ? 'border-[#1ed760] border-l-[#1ed760]' : ''
+          }`}
+        >
+          <div className="flex items-center gap-2">
+            {question.isUserCorrect ? (
+              <motion.div
+                initial={{ scale: 0 }}
+                animate={{ scale: [0, 1.2, 1] }}
+                transition={{ duration: 0.5 }}
+              >
+                <CheckCircle className="h-5 w-5 text-[#1ed760]" />
+              </motion.div>
+            ) : (
+              <XCircle className="h-5 w-5 text-[#ff3333]" />
+            )}
+            <AlertTitle className="text-base">
+              {question.isUserCorrect 
+                ? (
+                  <motion.span
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    transition={{ delay: 0.2 }}
+                  >
+                    Correct Answer!
+                  </motion.span>
+                ) 
+                : 'Incorrect Answer'
+              }
+            </AlertTitle>
+          </div>
+          
+          {/* Show explanation if available and user is incorrect */}
+          {!question.isUserCorrect && 'explanation' in question && question.explanation && (
+            <AlertDescription className="mt-4 pb-3 border-b border-[#ff3333]/20">
+              <h3 className="font-medium mb-2 text-base text-[#ff3333]/90">Explanation:</h3>
+              <div className="pl-2 text-sm bg-[#ff3333]/5 p-3 rounded-md">
+                <motion.div
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  className="explanation-content whitespace-normal"
+                >
+                  {formatText(question.explanation)}
+                </motion.div>
+              </div>
+            </AlertDescription>
+          )}
+          
+          {/* Show correct answers if user is incorrect */}
+          {!question.isUserCorrect && question.type === 'text-input' && (
+            <AlertDescription className="mt-4">
+              <div className="flex items-center bg-[#ff3333]/5 p-3 rounded-md">
+                <div className="text-sm">
+                  <span className="text-[#ff3333]/90 font-medium">
+                    Correct answer{question.correctAnswers.length > 1 ? 's' : ''}:
+                  </span>{' '}
+                  <span className="font-bold ml-1">
+                    {question.correctAnswers.join(' or ')}
+                  </span>
+                </div>
+              </div>
+            </AlertDescription>
+          )}
+          
+          {question.type === 'multiple-choice' && !question.isUserCorrect && (
+            <AlertDescription className="mt-4">
+              <div className="flex items-center bg-[#ff3333]/5 p-3 rounded-md">
+                <div className="text-sm">
+                  <span className="text-[#ff3333]/90 font-medium">
+                    Correct answer:
+                  </span>{' '}
+                  <span className="font-bold ml-1">
+                    Option {question.options.find(opt => opt.isCorrect)?.id.toUpperCase() || ''}
+                  </span>
+                </div>
+              </div>
+            </AlertDescription>
+          )}
+        </Alert>
+      </CardFooter>
+    );
+  };
 
   return (
     <motion.div
@@ -164,7 +297,7 @@ export default function QuestionDisplay({ question, onAnswerSubmit, questionInde
             // Multiple Choice Options
             <div className="space-y-3">
               {question.options.map((option) => {
-                const isSelected = hasSubmitted && question.answer === option.id;
+                const isSelected = hasSubmitted && inputValue === option.id;
                 const isCorrect = option.isCorrect;
                 const isIncorrect = isSelected && question.isUserCorrect === false;
                 
@@ -244,7 +377,7 @@ export default function QuestionDisplay({ question, onAnswerSubmit, questionInde
                         : ''
                     }`}
                     placeholder="Type your answer here..."
-                    disabled={question.isUserCorrect !== null}
+                    disabled={hasSubmitted}
                   />
                   {question.isUserCorrect === true && (
                     <CheckCircle className="absolute right-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-[#1ed760]" />
@@ -255,7 +388,7 @@ export default function QuestionDisplay({ question, onAnswerSubmit, questionInde
                 </div>
               </div>
               
-              {question.isUserCorrect === null && (
+              {hasSubmitted && (
                 <motion.div whileHover={{ scale: 1.01 }} whileTap={{ scale: 0.99 }}>
                   <Button type="submit" className="w-full">
                     Submit Answer
@@ -266,92 +399,7 @@ export default function QuestionDisplay({ question, onAnswerSubmit, questionInde
           )}
         </CardContent>
 
-        {/* Only show the answer feedback AFTER the user has submitted an answer */}
-        {question.answer !== null && question.isUserCorrect !== null && hasSubmitted && showFeedback && (
-          <CardFooter className="border-t bg-card px-6 py-4">
-            <Alert 
-              variant={question.isUserCorrect ? "default" : "destructive"} 
-              className={`w-full border-l-4 shadow-sm ${
-                question.isUserCorrect ? 'border-[#1ed760] border-l-[#1ed760]' : ''
-              }`}
-            >
-              <div className="flex items-center gap-2">
-                {question.isUserCorrect ? (
-                  <motion.div
-                    initial={{ scale: 0 }}
-                    animate={{ scale: [0, 1.2, 1] }}
-                    transition={{ duration: 0.5 }}
-                  >
-                    <CheckCircle className="h-5 w-5 text-[#1ed760]" />
-                  </motion.div>
-                ) : (
-                  <XCircle className="h-5 w-5 text-[#ff3333]" />
-                )}
-                <AlertTitle className="text-base">
-                  {question.isUserCorrect 
-                    ? (
-                      <motion.span
-                        initial={{ opacity: 0 }}
-                        animate={{ opacity: 1 }}
-                        transition={{ delay: 0.2 }}
-                      >
-                        Correct Answer!
-                      </motion.span>
-                    ) 
-                    : 'Incorrect Answer'
-                  }
-                </AlertTitle>
-              </div>
-              
-              {/* Show explanation if available and user is incorrect */}
-              {!question.isUserCorrect && 'explanation' in question && question.explanation && (
-                <AlertDescription className="mt-4 pb-3 border-b border-[#ff3333]/20">
-                  <h3 className="font-medium mb-2 text-base text-[#ff3333]/90">Explanation:</h3>
-                  <div className="pl-2 text-sm bg-[#ff3333]/5 p-3 rounded-md">
-                    <motion.div
-                      initial={{ opacity: 0 }}
-                      animate={{ opacity: 1 }}
-                      className="explanation-content whitespace-normal"
-                    >
-                      {formatText(question.explanation)}
-                    </motion.div>
-                  </div>
-                </AlertDescription>
-              )}
-              
-              {/* Show correct answers if user is incorrect */}
-              {!question.isUserCorrect && question.type === 'text-input' && (
-                <AlertDescription className="mt-4">
-                  <div className="flex items-center bg-[#ff3333]/5 p-3 rounded-md">
-                    <div className="text-sm">
-                      <span className="text-[#ff3333]/90 font-medium">
-                        Correct answer{question.correctAnswers.length > 1 ? 's' : ''}:
-                      </span>{' '}
-                      <span className="font-bold ml-1">
-                        {question.correctAnswers.join(' or ')}
-                      </span>
-                    </div>
-                  </div>
-                </AlertDescription>
-              )}
-              
-              {question.type === 'multiple-choice' && !question.isUserCorrect && (
-                <AlertDescription className="mt-4">
-                  <div className="flex items-center bg-[#ff3333]/5 p-3 rounded-md">
-                    <div className="text-sm">
-                      <span className="text-[#ff3333]/90 font-medium">
-                        Correct answer:
-                      </span>{' '}
-                      <span className="font-bold ml-1">
-                        Option {question.options.find(opt => opt.isCorrect)?.id.toUpperCase() || ''}
-                      </span>
-                    </div>
-                  </div>
-                </AlertDescription>
-              )}
-            </Alert>
-          </CardFooter>
-        )}
+        {renderFeedback()}
       </Card>
     </motion.div>
   );

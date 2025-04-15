@@ -19,7 +19,7 @@ const isLocalStorageAvailable = () => {
     localStorage.setItem(testKey, testKey);
     localStorage.removeItem(testKey);
     return true;
-  } catch (e) {
+  } catch {
     return false;
   }
 };
@@ -52,7 +52,7 @@ export const saveSessionToCookie = (studySet: StudySet): void => {
         localStorage.setItem(sessionKey, serializedData);
         
         // Update the sessions list
-        let sessionsList = getSessionsList();
+        const sessionsList = getSessionsList();
         if (!sessionsList.includes(studySet.id)) {
           sessionsList.push(studySet.id);
           Cookies.set(SESSIONS_LIST_KEY, JSON.stringify(sessionsList), { 
