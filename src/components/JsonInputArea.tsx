@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
-import { StudySet } from '@/types/studyTypes';
+import { StudySet, Question } from '@/types/studyTypes';
 import { Button } from '@/components/ui/button';
 import { CopyIcon, CheckIcon, BookOpen, AlertTriangle } from 'lucide-react';
 import { Card } from '@/components/ui/card';
@@ -35,14 +35,14 @@ export default function JsonInputArea({ onJsonLoaded }: JsonInputAreaProps) {
 
     const reader = new FileReader();
     
-    reader.onload = (event: any) => {
+    reader.onload = (event: ProgressEvent<FileReader>) => {
       try {
         const content = event.target?.result as string;
         setJsonInput(content);
         setLoading(false);
       } catch (err: any) {
-        console.error("Error parsing or validating JSON:", err);
-        setError(`Invalid JSON file: ${err.message}`);
+        console.error("Error reading file content:", err);
+        setError(`Failed to read file content: ${err.message}`);
         setLoading(false);
       }
     };
@@ -58,7 +58,7 @@ export default function JsonInputArea({ onJsonLoaded }: JsonInputAreaProps) {
   // Pre-process JSON to fix common LaTeX and formatting issues
   const preprocessJson = (json: string): string => {
     let preprocessed = json;
-    let modifications = [];
+    const modifications: string[] = [];
     
     // 1. Better handling of LaTeX expressions with special detection
     // For special LaTeX commands that use braces like \frac{}{}, \sqrt{}, etc.
@@ -343,7 +343,7 @@ Please create a study set with as many questions as needed for the user to study
       parsedData.lastAccessed = Date.now();
 
       // More detailed validation
-      parsedData.questions.forEach((question: any, index: number) => {
+      parsedData.questions.forEach((question: Partial<Question>, index: number) => {
         if (!question.id) {
           throw new Error(`Question at index ${index} is missing an id`);
         }
@@ -361,7 +361,7 @@ Please create a study set with as many questions as needed for the user to study
             throw new Error(`Multiple-choice question ${question.id} needs at least 2 options`);
           }
           
-          const correctOptions = question.options.filter((opt: any) => opt.isCorrect === true);
+          const correctOptions = question.options.filter((opt: { id: string; text: string; isCorrect?: boolean }) => opt.isCorrect === true);
           if (correctOptions.length === 0) {
             throw new Error(`Multiple-choice question ${question.id} has no correct option marked (use "isCorrect": true)`);
           } else if (correctOptions.length > 1) {
@@ -369,7 +369,7 @@ Please create a study set with as many questions as needed for the user to study
           }
           
           // Check if all options have IDs
-          const missingIdOption = question.options.find((opt: any) => !opt.id);
+          const missingIdOption = question.options.find((opt: { id: string; text: string; isCorrect?: boolean }) => !opt.id);
           if (missingIdOption) {
             throw new Error(`An option in question ${question.id} is missing an "id" field`);
           }
@@ -396,7 +396,7 @@ Please create a study set with as many questions as needed for the user to study
       }
 
       // Initialize answer and isUserCorrect fields
-      parsedData.questions = parsedData.questions.map((q: any) => ({
+      parsedData.questions = parsedData.questions.map((q: Partial<Question>) => ({
         ...q,
         answer: null,
         isUserCorrect: null,

@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import { useStudySession } from '@/contexts/StudySessionContext';
 import JsonInputArea from '@/components/JsonInputArea';
-import { StudySet, Question } from '@/types/studyTypes';
+import { StudySet /*, Question // Unused */ } from '@/types/studyTypes';
 // import Link from 'next/link'; // Unused
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';

@@ -98,7 +98,7 @@ export default function QuestionDisplay({ question, onAnswerSubmit, questionInde
       timeoutId = setTimeout(() => setShowConfetti(false), 3000); // Hide after 3 seconds
     }
     return () => clearTimeout(timeoutId);
-  }, [showConfetti]); // Added showConfetti dependency
+  }, [showConfetti]); // Added showConfetti
   
   // If no question is available, show a placeholder
   if (!question) {
@@ -126,15 +126,16 @@ export default function QuestionDisplay({ question, onAnswerSubmit, questionInde
   };
 
   // Handle text input submission
-  const handleTextSubmit = (event: React.FormEvent<HTMLFormElement>) => {
-    event.preventDefault();
-    if (hasSubmitted) return; // Don't allow submission after already submitted
-    if (inputValue.trim()) {
-      setIsAnimating(true);
-      setTimeout(() => {
-        onAnswerSubmit(question.id, inputValue);
-        setIsAnimating(false);
-      }, 300);
+  const handleSubmit = () => {
+    if (!inputValue) return;
+    
+    onAnswerSubmit(question.id, inputValue);
+    setHasSubmitted(true);
+    
+    const isActuallyCorrect = checkAnswer(question, inputValue);
+
+    if (isActuallyCorrect) {
+      setShowConfetti(true);
     }
   };
 
@@ -151,20 +152,6 @@ export default function QuestionDisplay({ question, onAnswerSubmit, questionInde
   // Format text with LaTeX support - updated to use LatexRenderer
   const formatText = (text: string) => {
     return <LatexRenderer content={text} />;
-  };
-
-  // Handle answer submission
-  const handleSubmit = () => {
-    if (!inputValue) return;
-    
-    onAnswerSubmit(question.id, inputValue);
-    setHasSubmitted(true);
-    
-    const isActuallyCorrect = checkAnswer(question, inputValue);
-
-    if (isActuallyCorrect) {
-      setShowConfetti(true);
-    }
   };
 
   // Render feedback (correct/incorrect)
@@ -351,7 +338,7 @@ export default function QuestionDisplay({ question, onAnswerSubmit, questionInde
             </div>
           ) : (
             // Text Input
-            <form onSubmit={handleTextSubmit} className="space-y-4">
+            <form onSubmit={handleSubmit} className="space-y-4">
               <div className="space-y-2">
                 <Label htmlFor="answer" className="text-sm font-medium">
                   Your Answer:
