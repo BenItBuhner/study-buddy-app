@@ -250,7 +250,7 @@ Please create a study set with as many questions as needed for the user to study
         const marker = `${' '.repeat(Math.min(20, columnNumber))}^ Problem may be here`;
         
         return `Error near line ${lineNumber}, column ${columnNumber}:\n${context}\n${marker}`;
-      } catch (err) {
+      } catch {
         // Fall back to generic position message if calculation fails
         return `Error found near position ${position} in your JSON.`;
       }
@@ -304,7 +304,7 @@ Please create a study set with as many questions as needed for the user to study
             preprocessedJson = jsonInput.replace(/\\/g, '\\\\');
             parsedData = JSON.parse(preprocessedJson);
             setPreprocessingInfo("Applied aggressive LaTeX escape sequence fixing");
-          } catch (_) {
+          } catch {
             // If that also fails, provide detailed error
             const positionMatch = errorMessage.match(/position (\d+)/);
             const errorPosition = positionMatch ? parseInt(positionMatch[1]) : undefined;
