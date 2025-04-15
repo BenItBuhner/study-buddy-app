@@ -14,6 +14,7 @@ import { Label } from '@/components/ui/label';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Download, Loader2 } from 'lucide-react';
 import { StudySet } from '@/types/studyTypes';
+import { exportStudySet } from '@/utils/exportUtils';
 
 interface ExportDialogProps {
   isOpen: boolean;
@@ -75,7 +76,7 @@ export default function ExportDialog({ isOpen, onClose, studySet }: ExportDialog
         <DialogHeader>
           <DialogTitle>Export Study Set</DialogTitle>
           <DialogDescription>
-            Export "{studySet.title}" as a JSON file that can be imported later.
+            Export &ldquo;{studySet.title}&rdquo; as a JSON file that can be imported later.
           </DialogDescription>
         </DialogHeader>
         

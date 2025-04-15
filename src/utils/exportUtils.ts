@@ -1,4 +1,4 @@
-import { StudySet, Question } from '@/types/studyTypes';
+import { StudySet } from '@/types/studyTypes';
 
 /**
  * Exports a study set as a JSON file
